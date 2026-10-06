@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Combined Inventory Summarizer</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for parsing CSV files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800 m-0 p-0">
+
+    <div class="w-full min-h-screen flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col md:flex-row items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 mb-2">Inventory Summarizer Dashboard</h1>
+                <p class="text-slate-500 text-sm">Pilih mode laporan inventory dan unggah file CSV Anda untuk melakukan cross-tab pivot summary.</p>
+            </div>
+            <!-- Tab Navigation Buttons -->
+            <div class="flex space-x-2 mt-4 md:mt-0 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <button id="tabBtnCable" onclick="switchTab('cable')" class="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm bg-blue-600 text-white flex items-center">
+                    <i class="fa-solid fa-network-wired mr-2"></i> Cable Inventory
+                </button>
+                <button id="tabBtnKit" onclick="switchTab('kit')" class="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all text-slate-600 hover:text-slate-900 flex items-center">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i> Kits Inventory
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= CABLE INVENTORY SECTION ================= -->
+        <div id="sectionCable" class="flex flex-col flex-1">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex flex-col items-center justify-center w-full">
+                    <label for="csvFileInputCable" class="flex flex-col items-center justify-center w-full h-36 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                            <p class="mb-1 text-sm text-slate-600"><span class="font-semibold text-blue-600">Klik untuk upload CSV Cable</span> atau drag & drop</p>
+                            <p class="text-xs text-slate-500">Kolom wajib: Location, Manufacturer, Cable Type, Armoring, Core Type, # Core, Length Measure</p>
+                        </div>
+                        <input id="csvFileInputCable" type="file" accept=".csv" class="hidden" />
+                    </label>
+                </div>
+                <div id="fileInfoCable" class="hidden mt-3 text-center text-sm font-medium text-slate-700">
+                    File terpilih: <span id="fileNameCable" class="text-blue-600"></span>
+                </div>
+            </div>
+
+            <!-- Error Cable -->
+            <div id="errorBoxCable" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                <div class="flex">
+                    <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-red-500"></i></div>
+                    <div class="ml-3"><p id="errorMessageCable" class="text-sm text-red-700"></p></div>
+                </div>
+            </div>
+
+            <!-- Loading Cable -->
+            <div id="loadingStateCable" class="hidden flex flex-col items-center justify-center py-12">
+                <div class="loader mb-4"></div>
+                <p class="text-slate-500 font-medium">Memproses data cable inventory...</p>
+            </div>
+
+            <!-- Results Cable -->
+            <div id="resultsSectionCable" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
+                <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
+                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-blue-500"></i> Cable Pivot Summary</h2>
+                    <button id="downloadBtnCable" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
+                        <i class="fa-solid fa-download mr-2"></i> Download CSV
+                    </button>
+                </div>
+                <!-- Filter Cable -->
+                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Location</label>
+                        <select id="filterLocationCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All Locations</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Manufacturer</label>
+                        <select id="filterManufacturerCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All Manufacturers</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Cable Type</label>
+                        <select id="filterCableTypeCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All Cable Types</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Armoring</label>
+                        <select id="filterArmoringCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All Armoring</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Core Type</label>
+                        <select id="filterCoreTypeCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All Core Types</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1"># Core</label>
+                        <select id="filterNumCoreCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All # Core</option></select>
+                    </div>
+                </div>
+                <div id="tablesContainerCable" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[600px]"></div>
+            </div>
+        </div>
+
+        <!-- ================= KITS INVENTORY SECTION ================= -->
+        <div id="sectionKit" class="hidden flex flex-col flex-1">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                <div class="flex flex-col items-center justify-center w-full">
+                    <label for="csvFileInputKit" class="flex flex-col items-center justify-center w-full h-36 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                            <p class="mb-1 text-sm text-slate-600"><span class="font-semibold text-emerald-600">Klik untuk upload CSV Kits</span> atau drag & drop</p>
+                            <p class="text-xs text-slate-500">Kolom wajib: Location, Part Number/Part, Item Name/Description, Qty, Weight</p>
+                        </div>
+                        <input id="csvFileInputKit" type="file" accept=".csv" class="hidden" />
+                    </label>
+                </div>
+                <div id="fileInfoKit" class="hidden mt-3 text-center text-sm font-medium text-slate-700">
+                    File terpilih: <span id="fileNameKit" class="text-emerald-600"></span>
+                </div>
+            </div>
+
+            <!-- Error Kit -->
+            <div id="errorBoxKit" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm">
+                <div class="flex">
+                    <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-red-500"></i></div>
+                    <div class="ml-3"><p id="errorMessageKit" class="text-sm text-red-700"></p></div>
+                </div>
+            </div>
+
+            <!-- Loading Kit -->
+            <div id="loadingStateKit" class="hidden flex flex-col items-center justify-center py-12">
+                <div class="loader mb-4" style="border-top-color: #10b981;"></div>
+                <p class="text-slate-500 font-medium">Memproses data kits inventory...</p>
+            </div>
+
+            <!-- Results Kit -->
+            <div id="resultsSectionKit" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
+                <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
+                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Pivot Summary</h2>
+                </div>
+                <!-- Filter Kit -->
+                <div class="p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
+                    <div class="w-full sm:w-1/3">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Filter Location</label>
+                        <select id="locationFilterKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                            <option value="all">Semua Location</option>
+                        </select>
+                    </div>
+                    <div class="w-full sm:w-2/3">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Cari Part / Item Name</label>
+                        <input type="text" id="partFilterKit" placeholder="Ketik Part Number atau Item Name..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                    </div>
+                </div>
+                <div id="tablesContainerKit" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[600px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switcher Logic
+        function switchTab(tab) {
+            const btnCable = document.getElementById('tabBtnCable');
+            const btnKit = document.getElementById('tabBtnKit');
+            const secCable = document.getElementById('sectionCable');
+            const secKit = document.getElementById('sectionKit');
+
+            if (tab === 'cable') {
+                btnCable.className = "px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm bg-blue-600 text-white flex items-center";
+                btnKit.className = "px-5 py-2.5 rounded-lg text-sm font-semibold transition-all text-slate-600 hover:text-slate-900 flex items-center";
+                secCable.classList.remove('hidden');
+                secKit.classList.add('hidden');
+            } else {
+                btnKit.className = "px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm bg-emerald-600 text-white flex items-center";
+                btnCable.className = "px-5 py-2.5 rounded-lg text-sm font-semibold transition-all text-slate-600 hover:text-slate-900 flex items-center";
+                secKit.classList.remove('hidden');
+                secCable.classList.add('hidden');
+            }
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(num);
+        }
+
+        // ================= CABLE INVENTORY SCRIPT =================
+        const fileInputCable = document.getElementById('csvFileInputCable');
+        const fileInfoCable = document.getElementById('fileInfoCable');
+        const fileNameCable = document.getElementById('fileNameCable');
+        const errorBoxCable = document.getElementById('errorBoxCable');
+        const errorMessageCable = document.getElementById('errorMessageCable');
+        const loadingStateCable = document.getElementById('loadingStateCable');
+        const resultsSectionCable = document.getElementById('resultsSectionCable');
+        const tablesContainerCable = document.getElementById('tablesContainerCable');
+        const downloadBtnCable = document.getElementById('downloadBtnCable');
+
+        const filterLocationCable = document.getElementById('filterLocationCable');
+        const filterManufacturerCable = document.getElementById('filterManufacturerCable');
+        const filterCableTypeCable = document.getElementById('filterCableTypeCable');
+        const filterArmoringCable = document.getElementById('filterArmoringCable');
+        const filterCoreTypeCable = document.getElementById('filterCoreTypeCable');
+        const filterNumCoreCable = document.getElementById('filterNumCoreCable');
+
+        let globalRawDataCable = [];
+        let globalHeaderMapCable = {};
+        let processedDataForExportCable = [];
+        let originalFileNameCable = "";
+        const requiredColumnsCable = ['Location', 'Manufacturer', 'Cable Type', 'Armoring', 'Core Type', '# Core', 'Length Measure'];
+
+        fileInputCable.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            errorBoxCable.classList.add('hidden');
+            resultsSectionCable.classList.add('hidden');
+            loadingStateCable.classList.remove('hidden');
+            originalFileNameCable = file.name;
+            fileNameCable.textContent = originalFileNameCable;
+            fileInfoCable.classList.remove('hidden');
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    initializeDataCable(results);
+                },
+                error: function(err) {
+                    errorMessageCable.textContent = "Gagal membaca file CSV: " + err.message;
+                    errorBoxCable.classList.remove('hidden');
+                    loadingStateCable.classList.add('hidden');
+                }
+            });
+        });
+
+        function initializeDataCable(parsedData) {
+            const data = parsedData.data;
+            const headers = parsedData.meta.fields;
+            if (data.length === 0) {
+                errorMessageCable.textContent = "File CSV kosong atau format tidak dikenali.";
+                errorBoxCable.classList.remove('hidden');
+                loadingStateCable.classList.add('hidden');
+                return;
+            }
+
+            const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+            const missing = requiredColumnsCable.filter(req => !lowerHeaders.includes(req.toLowerCase()));
+            if (missing.length > 0) {
+                errorMessageCable.textContent = `Kolom wajib tidak ditemukan: ${missing.join(', ')}`;
+                errorBoxCable.classList.remove('hidden');
+                loadingStateCable.classList.add('hidden');
+                return;
+            }
+
+            globalHeaderMapCable = {};
+            requiredColumnsCable.forEach(req => {
+                globalHeaderMapCable[req] = headers.find(h => h.toLowerCase().trim() === req.toLowerCase());
+            });
+
+            globalRawDataCable = data;
+            populateFiltersCable();
+            applyFiltersAndRenderCable();
+
+            setTimeout(() => {
+                loadingStateCable.classList.add('hidden');
+                resultsSectionCable.classList.remove('hidden');
+            }, 300);
+        }
+
+        function populateFiltersCable() {
+            const locs = new Set(), mans = new Set(), types = new Set(), armors = new Set(), cores = new Set(), numCores = new Set();
+            globalRawDataCable.forEach(row => {
+                locs.add(row[globalHeaderMapCable['Location']] || '-');
+                mans.add(row[globalHeaderMapCable['Manufacturer']] || '-');
+                types.add(row[globalHeaderMapCable['Cable Type']] || '-');
+                armors.add(row[globalHeaderMapCable['Armoring']] || '-');
+                cores.add(row[globalHeaderMapCable['Core Type']] || '-');
+                numCores.add(row[globalHeaderMapCable['# Core']] || '-');
+            });
+            fillSelectCable(filterLocationCable, locs, 'All Locations');
+            fillSelectCable(filterManufacturerCable, mans, 'All Manufacturers');
+            fillSelectCable(filterCableTypeCable, types, 'All Cable Types');
+            fillSelectCable(filterArmoringCable, armors, 'All Armoring');
+            fillSelectCable(filterCoreTypeCable, cores, 'All Core Types');
+            fillSelectCable(filterNumCoreCable, numCores, 'All # Core');
+        }
+
+        function fillSelectCable(el, set, defaultText) {
+            el.innerHTML = `<option value="ALL">${defaultText}</option>`;
+            Array.from(set).filter(v => v !== undefined && v !== "").sort().forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                el.appendChild(opt);
+            });
+        }
+
+        [filterLocationCable, filterManufacturerCable, filterCableTypeCable, filterArmoringCable, filterCoreTypeCable, filterNumCoreCable].forEach(el => {
+            el.addEventListener('change', applyFiltersAndRenderCable);
+        });
+
+        function applyFiltersAndRenderCable() {
+            const sLoc = filterLocationCable.value;
+            const sMan = filterManufacturerCable.value;
+            const sType = filterCableTypeCable.value;
+            const sArmor = filterArmoringCable.value;
+            const sCore = filterCoreTypeCable.value;
+            const sNum = filterNumCoreCable.value;
+
+            const filtered = globalRawDataCable.filter(row => {
+                if (sLoc !== 'ALL' && (row[globalHeaderMapCable['Location']] || '-') !== sLoc) return false;
+                if (sMan !== 'ALL' && (row[globalHeaderMapCable['Manufacturer']] || '-') !== sMan) return false;
+                if (sType !== 'ALL' && (row[globalHeaderMapCable['Cable Type']] || '-') !== sType) return false;
+                if (sArmor !== 'ALL' && (row[globalHeaderMapCable['Armoring']] || '-') !== sArmor) return false;
+                if (sCore !== 'ALL' && (row[globalHeaderMapCable['Core Type']] || '-') !== sCore) return false;
+                if (sNum !== 'ALL' && (row[globalHeaderMapCable['# Core']] || '-') !== sNum) return false;
+                return true;
+            });
+            buildPivotTableCable(filtered);
+        }
+
+        function buildPivotTableCable(data) {
+            tablesContainerCable.innerHTML = '';
+            processedDataForExportCable = [];
+            if (data.length === 0) {
+                tablesContainerCable.innerHTML = `<div class="p-8 text-center text-slate-500">Tidak ada data yang cocok dengan filter.</div>`;
+                return;
+            }
+
+            const pivotData = {};
+            const uniqueLocations = new Set();
+
+            data.forEach(row => {
+                const loc = row[globalHeaderMapCable['Location']] || 'Unknown';
+                const man = row[globalHeaderMapCable['Manufacturer']] || '-';
+                const cType = row[globalHeaderMapCable['Cable Type']] || '-';
+                const armor = row[globalHeaderMapCable['Armoring']] || '-';
+                const cCore = row[globalHeaderMapCable['Core Type']] || '-';
+                const nCore = row[globalHeaderMapCable['# Core']] || '-';
+                const lenVal = parseFloat(String(row[globalHeaderMapCable['Length Measure']] || '0').replace(',', '.')) || 0;
+
+                uniqueLocations.add(loc);
+                const key = `${man}|${cType}|${armor}|${cCore}|${nCore}`;
+
+                if (!pivotData[key]) {
+                    pivotData[key] = {
+                        'Manufacturer': man, 'Cable Type': cType, 'Armoring': armor, 'Core Type': cCore, '# Core': nCore,
+                        'locations': {}, 'Grand Total Qty': 0, 'Grand Total Measure': 0
+                    };
+                }
+                if (!pivotData[key].locations[loc]) {
+                    pivotData[key].locations[loc] = { Quantity: 0, TotalMeasure: 0 };
+                }
+                pivotData[key].locations[loc].Quantity += 1;
+                pivotData[key].locations[loc].TotalMeasure += lenVal;
+                pivotData[key]['Grand Total Qty'] += 1;
+                pivotData[key]['Grand Total Measure'] += lenVal;
+            });
+
+            const sortedLocations = Array.from(uniqueLocations).sort();
+            let tableHTML = `
+                <table class="min-w-full divide-y divide-slate-200 border-b border-slate-200">
+                    <thead class="bg-slate-100 sticky top-0 z-10">
+                        <tr>
+                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Manufacturer</th>
+                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Cable Type</th>
+                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Armoring</th>
+                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Core Type</th>
+                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase border-r border-slate-300 bg-slate-100"># Core</th>
+            `;
+
+            sortedLocations.forEach(loc => {
+                tableHTML += `<th colspan="2" class="px-4 py-2 text-center text-xs font-bold text-slate-800 uppercase border-r border-b border-slate-300 bg-blue-50">${loc}</th>`;
+            });
+            tableHTML += `<th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-blue-900 uppercase bg-blue-100 border-b border-slate-300">Grand Total</th></tr><tr>`;
+
+            sortedLocations.forEach((loc, idx) => {
+                const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
+                tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 border-r border-slate-200 bg-blue-50/50">Qty</th>
+                              <th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 ${borderClass} bg-blue-50/50">Length (Mtr)</th>`;
+            });
+            tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 border-r border-slate-200 bg-blue-100/80">Tot Qty</th>
+                          <th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 bg-blue-100/80">Tot Length</th></tr></thead><tbody class="bg-white divide-y divide-slate-200">`;
+
+            const sortedKeys = Object.keys(pivotData).sort((a, b) => {
+                const rA = pivotData[a], rB = pivotData[b];
+                if (rA['Manufacturer'] !== rB['Manufacturer']) return rA['Manufacturer'].localeCompare(rB['Manufacturer']);
+                if (rA['Cable Type'] !== rB['Cable Type']) return rA['Cable Type'].localeCompare(rB['Cable Type']);
+                return rA['Armoring'].localeCompare(rB['Armoring']);
+            });
+
+            const colTotals = {};
+            sortedLocations.forEach(loc => colTotals[loc] = { qty: 0, measure: 0 });
+            let superQty = 0, superMeas = 0;
+
+            sortedKeys.forEach(key => {
+                const row = pivotData[key];
+                const exportRow = { 'Manufacturer': row['Manufacturer'], 'Cable Type': row['Cable Type'], 'Armoring': row['Armoring'], 'Core Type': row['Core Type'], '# Core': row['# Core'] };
+
+                tableHTML += `<tr class="hover:bg-yellow-50 transition-colors">
+                    <td class="px-4 py-2 text-sm font-medium text-slate-900 border-r border-slate-100">${row['Manufacturer']}</td>
+                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${row['Cable Type']}</td>
+                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${row['Armoring']}</td>
+                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${row['Core Type']}</td>
+                    <td class="px-4 py-2 text-sm text-slate-600 text-center border-r border-slate-300 font-semibold bg-slate-50">${row['# Core']}</td>`;
+
+                sortedLocations.forEach((loc, idx) => {
+                    const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-100';
+                    const lData = row.locations[loc];
+                    if (lData) {
+                        colTotals[loc].qty += lData.Quantity;
+                        colTotals[loc].measure += lData.TotalMeasure;
+                        exportRow[`${loc} (Qty)`] = lData.Quantity;
+                        exportRow[`${loc} (Total Measure)`] = lData.TotalMeasure;
+                        tableHTML += `<td class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-r border-slate-100">${formatNumber(lData.Quantity)}</td>
+                                      <td class="px-3 py-2 text-sm text-slate-700 text-right ${borderClass} bg-slate-50/50">${formatNumber(lData.TotalMeasure)}</td>`;
+                    } else {
+                        exportRow[`${loc} (Qty)`] = 0; exportRow[`${loc} (Total Measure)`] = 0;
+                        tableHTML += `<td class="px-3 py-2 text-sm text-slate-300 text-right border-r border-slate-100">-</td>
+                                      <td class="px-3 py-2 text-sm text-slate-300 text-right ${borderClass}">-</td>`;
+                    }
+                });
+
+                superQty += row['Grand Total Qty'];
+                superMeas += row['Grand Total Measure'];
+                exportRow['Grand Total Qty'] = row['Grand Total Qty'];
+                exportRow['Grand Total Measure'] = row['Grand Total Measure'];
+                processedDataForExportCable.push(exportRow);
+
+                tableHTML += `<td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200">${formatNumber(row['Grand Total Qty'])}</td>
+                              <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50">${formatNumber(row['Grand Total Measure'])}</td></tr>`;
+            });
+
+            tableHTML += `</tbody><tfoot class="bg-slate-200 border-t-2 border-slate-400"><tr>
+                <td colspan="5" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
+            sortedLocations.forEach((loc, idx) => {
+                const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
+                tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-r border-slate-300">${formatNumber(colTotals[loc].qty)}</td>
+                              <td class="px-3 py-3 text-sm font-black text-slate-900 text-right ${borderClass}">${formatNumber(colTotals[loc].measure)}</td>`;
+            });
+            tableHTML += `<td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-blue-300">${formatNumber(superQty)}</td>
+                          <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200">${formatNumber(superMeas)}</td></tr></tfoot></table>`;
+
+            tablesContainerCable.innerHTML = tableHTML;
+        }
+
+        downloadBtnCable.addEventListener('click', function() {
+            if (processedDataForExportCable.length === 0) return;
+            const csv = Papa.unparse(processedDataForExportCable);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Filtered_Summary_" + (originalFileNameCable || "Cable_Inventory.csv");
+            link.click();
+        });
+
+
+        // ================= KITS INVENTORY SCRIPT =================
+        const fileInputKit = document.getElementById('csvFileInputKit');
+        const fileInfoKit = document.getElementById('fileInfoKit');
+        const fileNameKit = document.getElementById('fileNameKit');
+        const errorBoxKit = document.getElementById('errorBoxKit');
+        const errorMessageKit = document.getElementById('errorMessageKit');
+        const loadingStateKit = document.getElementById('loadingStateKit');
+        const resultsSectionKit = document.getElementById('resultsSectionKit');
+        const tablesContainerKit = document.getElementById('tablesContainerKit');
+        const locationFilterKit = document.getElementById('locationFilterKit');
+        const partFilterKit = document.getElementById('partFilterKit');
+
+        let globalDataKit = { locations: [], parts: [], dataMap: new Map() };
+
+        fileInputKit.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            errorBoxKit.style.display = 'none';
+            resultsSectionKit.classList.add('hidden');
+            loadingStateKit.classList.remove('hidden');
+            fileNameKit.textContent = file.name;
+            fileInfoKit.classList.remove('hidden');
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    processDataKit(results.data);
+                },
+                error: function(err) {
+                    showErrorKit(`Gagal membaca file: ${err.message}`);
+                }
+            });
+        });
+
+        function processDataKit(data) {
+            if (data.length === 0) {
+                showErrorKit("File CSV kosong.");
+                return;
+            }
+            const headers = Object.keys(data[0]);
+            const findCol = (kw) => headers.find(h => h.toLowerCase().replace(/\s+/g, '').includes(kw.toLowerCase()));
+
+            const locCol = findCol('location');
+            const partCol = findCol('partnumber') || findCol('part');
+            const itemCol = findCol('itemname') || findCol('item') || findCol('description');
+            const qtyCol = findCol('qty') || findCol('quantity');
+            const weightCol = findCol('weight');
+
+            if (!partCol || !qtyCol || !weightCol) {
+                showErrorKit(`Kolom yang dibutuhkan tidak lengkap. Butuh: Part, Qty, Weight. Terdeteksi: ${headers.join(', ')}`);
+                return;
+            }
+
+            const partMap = new Map();
+            const uniqueLocsSet = new Set();
+
+            data.forEach(row => {
+                const loc = (locCol && row[locCol]) ? row[locCol].trim() : 'Unknown Loc';
+                const partNo = (row[partCol] || '').trim();
+                const itemName = (itemCol && row[itemCol]) ? row[itemCol].trim() : '-';
+                if (!partNo && !row[locCol]) return;
+
+                const qty = parseFloat(String(row[qtyCol] || '0').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+                const weight = parseFloat(String(row[weightCol] || '0').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+                if (qty === 0 && weight === 0 && !partNo) return;
+
+                const finalPart = partNo || 'Unknown Part';
+                uniqueLocsSet.add(loc);
+
+                if (!partMap.has(finalPart)) {
+                    partMap.set(finalPart, { itemName: itemName, locations: {}, total: { qty: 0, weight: 0 } });
+                } else if (partMap.get(finalPart).itemName === '-' && itemName !== '-') {
+                    partMap.get(finalPart).itemName = itemName;
+                }
+
+                const obj = partMap.get(finalPart);
+                if (!obj.locations[loc]) obj.locations[loc] = { qty: 0, weight: 0 };
+                obj.locations[loc].qty += qty;
+                obj.locations[loc].weight += weight;
+            });
+
+            globalDataKit = {
+                locations: Array.from(uniqueLocsSet).sort(),
+                parts: Array.from(partMap.keys()).sort(),
+                dataMap: partMap
+            };
+
+            populateLocationDropdownKit(globalDataKit.locations);
+            partFilterKit.value = '';
+            renderTableKit();
+
+            loadingStateKit.classList.add('hidden');
+            resultsSectionKit.classList.remove('hidden');
+        }
+
+        function populateLocationDropdownKit(locs) {
+            locationFilterKit.innerHTML = '<option value="all">Semua Location</option>';
+            locs.forEach(l => {
+                const opt = document.createElement('option');
+                opt.value = l;
+                opt.textContent = l;
+                locationFilterKit.appendChild(opt);
+            });
+        }
+
+        function renderTableKit() {
+            const filterLoc = locationFilterKit.value;
+            const searchPart = partFilterKit.value.toLowerCase().trim();
+            let displayLocs = filterLoc === 'all' ? globalDataKit.locations : [filterLoc];
+
+            if (globalDataKit.parts.length === 0) return;
+
+            let tableHTML = `<table class="min-w-full divide-y divide-slate-200 border-b border-slate-200"><thead class="bg-slate-100 sticky top-0 z-10"><tr>
+                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Part Number</th>
+                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Item Name</th>`;
+
+            displayLocs.forEach(loc => {
+                tableHTML += `<th colspan="2" class="px-4 py-2 text-center text-xs font-bold text-slate-800 uppercase border-l-2 border-slate-300 bg-slate-200">${loc}</th>`;
+            });
+            if (filterLoc === 'all') {
+                tableHTML += `<th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-slate-900 uppercase border-l-4 border-slate-400 bg-slate-300">Grand Total Part</th>`;
+            }
+
+            tableHTML += `</tr><tr>`;
+            displayLocs.forEach(() => {
+                tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 border-l-2 border-slate-300 bg-slate-100">Qty</th>
+                              <th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 bg-slate-100">Weight</th>`;
+            });
+            if (filterLoc === 'all') {
+                tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-bold text-slate-800 border-l-4 border-slate-400 bg-slate-200">Tot Qty</th>
+                              <th class="px-3 py-2 text-right text-[11px] font-bold text-slate-800 bg-slate-200">Tot Wght</th>`;
+            }
+            tableHTML += `</tr></thead><tbody class="bg-white divide-y divide-slate-200">`;
+
+            let colTotal = {};
+            displayLocs.forEach(l => colTotal[l] = { qty: 0, weight: 0 });
+            let superTot = { qty: 0, weight: 0 };
+
+            globalDataKit.parts.forEach(part => {
+                const partObj = globalDataKit.dataMap.get(part);
+                const itemName = partObj.itemName || '-';
+
+                if (searchPart && !part.toLowerCase().includes(searchPart) && !itemName.toLowerCase().includes(searchPart)) return;
+                if (filterLoc !== 'all' && (!partObj.locations[filterLoc] || (partObj.locations[filterLoc].qty === 0 && partObj.locations[filterLoc].weight === 0))) return;
+
+                tableHTML += `<tr class="hover:bg-yellow-50 transition-colors">
+                    <td class="px-4 py-2 text-sm font-semibold text-slate-900 border-r border-slate-100">${part}</td>
+                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${itemName}</td>`;
+
+                let rQty = 0, rWeight = 0;
+                displayLocs.forEach(l => {
+                    const lData = partObj.locations[l] || { qty: 0, weight: 0 };
+                    rQty += lData.qty; rWeight += lData.weight;
+                    colTotal[l].qty += lData.qty; colTotal[l].weight += lData.weight;
+
+                    tableHTML += `<td class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-l-2 border-slate-200">${lData.qty ? formatNumber(lData.qty) : '-'}</td>
+                                  <td class="px-3 py-2 text-sm text-slate-700 text-right">${lData.weight ? formatNumber(lData.weight) : '-'}</td>`;
+                });
+
+                superTot.qty += rQty; superTot.weight += rWeight;
+                if (filterLoc === 'all') {
+                    tableHTML += `<td class="px-3 py-2 text-sm font-bold text-slate-900 text-right border-l-4 border-slate-300 bg-slate-50">${rQty ? formatNumber(rQty) : '-'}</td>
+                                  <td class="px-3 py-2 text-sm font-bold text-slate-900 text-right bg-slate-50">${rWeight ? formatNumber(rWeight) : '-'}</td>`;
+                }
+                tableHTML += `</tr>`;
+            });
+
+            tableHTML += `</tbody><tfoot class="bg-slate-200 border-t-2 border-slate-400"><tr>
+                <td colspan="2" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
+            displayLocs.forEach(l => {
+                tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-l-2 border-slate-300">${formatNumber(colTotal[l].qty)}</td>
+                              <td class="px-3 py-3 text-sm font-black text-slate-900 text-right">${formatNumber(colTotal[l].weight)}</td>`;
+            });
+            if (filterLoc === 'all') {
+                tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-l-4 border-slate-400 bg-slate-300">${formatNumber(superTot.qty)}</td>
+                              <td class="px-3 py-3 text-sm font-black text-slate-900 text-right bg-slate-300">${formatNumber(superTot.weight)}</td>`;
+            }
+            tableHTML += `</tr></tfoot></table>`;
+
+            tablesContainerKit.innerHTML = tableHTML;
+        }
+
+        function showErrorKit(msg) {
+            errorMessageKit.textContent = msg;
+            errorBoxKit.style.display = 'block';
+            loadingStateKit.classList.add('hidden');
+        }
+
+        locationFilterKit.addEventListener('change', renderTableKit);
+        partFilterKit.addEventListener('input', renderTableKit);
+    </script>
+</body>
+</html>
