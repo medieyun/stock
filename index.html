@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PapaParse for parsing CSV files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- SheetJS (xlsx) for exporting Excel files -->
+    <!-- SheetJS (xlsx) for exporting Excel files with merge formatting -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,13 +45,12 @@
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-800 m-0 p-0">
 
-    <div class="w-full min-h-screen flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+    <div class="w-full min-h-screen flex flex-col p-4 sm:p-6 lg:p-8 max-w-[1900px] mx-auto">
         <!-- Header -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6 flex flex-col md:flex-row items-center justify-between">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-4 flex flex-col md:flex-row items-center justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-slate-900 mb-2">Inventory Summarizer Dashboard</h1>
-                <p class="text-slate-500 text-sm">Pilih mode laporan inventory dan unggah file CSV Anda untuk melakukan cross-tab pivot summary.</p>
-            </div>
+                <h1 class="text-3xl font-bold text-slate-900 mb-1">Inventory Summarizer Dashboard</h1>
+                </div>
             <!-- Tab Navigation Buttons -->
             <div class="flex space-x-2 mt-4 md:mt-0 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                 <button id="tabBtnCable" onclick="switchTab('cable')" class="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm bg-blue-600 text-white flex items-center">
@@ -65,24 +64,25 @@
 
         <!-- ================= CABLE INVENTORY SECTION ================= -->
         <div id="sectionCable" class="flex flex-col flex-1">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+            <!-- Compact Upload Box Cable -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-4">
                 <div class="flex flex-col items-center justify-center w-full">
-                    <label for="csvFileInputCable" class="flex flex-col items-center justify-center w-full h-36 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
-                            <p class="mb-1 text-sm text-slate-600"><span class="font-semibold text-blue-600">Klik untuk upload CSV Cable</span> atau drag & drop</p>
+                    <label for="csvFileInputCable" class="flex flex-col sm:flex-row items-center justify-center w-full py-3 px-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors gap-4">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-blue-500"></i>
+                        <div class="flex flex-col text-center sm:text-left">
+                            <p class="text-sm text-slate-700"><span class="font-semibold text-blue-600">Klik untuk upload CSV Cable</span> atau drag & drop file ke sini</p>
                             <p class="text-xs text-slate-500">Kolom wajib: Location, Manufacturer, Cable Type, Armoring, Core Type, # Core, Length Measure</p>
                         </div>
                         <input id="csvFileInputCable" type="file" accept=".csv" class="hidden" />
                     </label>
                 </div>
-                <div id="fileInfoCable" class="hidden mt-3 text-center text-sm font-medium text-slate-700">
-                    File terpilih: <span id="fileNameCable" class="text-blue-600"></span>
+                <div id="fileInfoCable" class="hidden mt-2 text-center text-sm font-medium text-slate-700">
+                    File terpilih: <span id="fileNameCable" class="text-blue-600 font-semibold"></span>
                 </div>
             </div>
 
             <!-- Error Cable -->
-            <div id="errorBoxCable" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm">
+            <div id="errorBoxCable" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg shadow-sm">
                 <div class="flex">
                     <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-red-500"></i></div>
                     <div class="ml-3"><p id="errorMessageCable" class="text-sm text-red-700"></p></div>
@@ -92,19 +92,23 @@
             <!-- Loading Cable -->
             <div id="loadingStateCable" class="hidden flex flex-col items-center justify-center py-12">
                 <div class="loader mb-4"></div>
-                <p class="text-slate-500 font-medium">Memproses data cable inventory...</p>
+                <p class="text-slate-500 font-medium">Memproses pivot table dan pemetaan System & Link...</p>
             </div>
 
             <!-- Results Cable -->
             <div id="resultsSectionCable" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
-                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-blue-500"></i> Cable Pivot Summary</h2>
+                <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
+                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-blue-500"></i> Cable Summary</h2>
                     <button id="downloadBtnCable" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
                         <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
                 </div>
                 <!-- Filter Cable -->
-                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4">
+                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Cari System / Link</label>
+                        <input type="text" id="filterSystemLinkCable" placeholder="Ketik System / Link..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                    </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Location</label>
                         <select id="filterLocationCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All Locations</option></select>
@@ -130,30 +134,31 @@
                         <select id="filterNumCoreCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All # Core</option></select>
                     </div>
                 </div>
-                <div id="tablesContainerCable" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[600px]"></div>
+                <div id="tablesContainerCable" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[650px]"></div>
             </div>
         </div>
 
         <!-- ================= KITS INVENTORY SECTION ================= -->
         <div id="sectionKit" class="hidden flex flex-col flex-1">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+            <!-- Compact Upload Box Kit -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-4">
                 <div class="flex flex-col items-center justify-center w-full">
-                    <label for="csvFileInputKit" class="flex flex-col items-center justify-center w-full h-36 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
-                            <p class="mb-1 text-sm text-slate-600"><span class="font-semibold text-emerald-600">Klik untuk upload CSV Kits</span> atau drag & drop</p>
+                    <label for="csvFileInputKit" class="flex flex-col sm:flex-row items-center justify-center w-full py-3 px-6 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors gap-4">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-emerald-500"></i>
+                        <div class="flex flex-col text-center sm:text-left">
+                            <p class="text-sm text-slate-700"><span class="font-semibold text-emerald-600">Klik untuk upload CSV Kits</span> atau drag & drop file ke sini</p>
                             <p class="text-xs text-slate-500">Kolom wajib: Location, Type, Part Number/Part, Item Name/Description, Qty, Weight</p>
                         </div>
                         <input id="csvFileInputKit" type="file" accept=".csv" class="hidden" />
                     </label>
                 </div>
-                <div id="fileInfoKit" class="hidden mt-3 text-center text-sm font-medium text-slate-700">
-                    File terpilih: <span id="fileNameKit" class="text-emerald-600"></span>
+                <div id="fileInfoKit" class="hidden mt-2 text-center text-sm font-medium text-slate-700">
+                    File terpilih: <span id="fileNameKit" class="text-emerald-600 font-semibold"></span>
                 </div>
             </div>
 
             <!-- Error Kit -->
-            <div id="errorBoxKit" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm">
+            <div id="errorBoxKit" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg shadow-sm">
                 <div class="flex">
                     <div class="flex-shrink-0"><i class="fa-solid fa-circle-exclamation text-red-500"></i></div>
                     <div class="ml-3"><p id="errorMessageKit" class="text-sm text-red-700"></p></div>
@@ -168,9 +173,8 @@
 
             <!-- Results Kit -->
             <div id="resultsSectionKit" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
-                <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
-                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Pivot Summary</h2>
-                    <!-- Tombol Download XLSX Kits -->
+                <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
+                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Summary</h2>
                     <button id="downloadBtnKit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
                         <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
@@ -188,7 +192,7 @@
                         <input type="text" id="partFilterKit" placeholder="Ketik Type, Part Number, atau Item Name..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                     </div>
                 </div>
-                <div id="tablesContainerKit" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[600px]"></div>
+                <div id="tablesContainerKit" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[650px]"></div>
             </div>
         </div>
     </div>
@@ -235,11 +239,13 @@
         const filterArmoringCable = document.getElementById('filterArmoringCable');
         const filterCoreTypeCable = document.getElementById('filterCoreTypeCable');
         const filterNumCoreCable = document.getElementById('filterNumCoreCable');
+        const filterSystemLinkCable = document.getElementById('filterSystemLinkCable');
 
         let globalRawDataCable = [];
         let globalHeaderMapCable = {};
-        let processedDataForExportCable = [];
         let originalFileNameCable = "";
+        let currentPivotRowsCable = [];
+        let currentSortedLocationsCable = [];
         const requiredColumnsCable = ['Location', 'Manufacturer', 'Cable Type', 'Armoring', 'Core Type', '# Core', 'Length Measure'];
 
         fileInputCable.addEventListener('change', function(e) {
@@ -271,7 +277,7 @@
             const headers = parsedData.meta.fields;
             if (data.length === 0) {
                 errorMessageCable.textContent = "File CSV kosong atau format tidak dikenali.";
-                errorBoxCable.classList.add('hidden');
+                errorBoxCable.classList.remove('hidden');
                 loadingStateCable.classList.add('hidden');
                 return;
             }
@@ -280,7 +286,7 @@
             const missing = requiredColumnsCable.filter(req => !lowerHeaders.includes(req.toLowerCase()));
             if (missing.length > 0) {
                 errorMessageCable.textContent = `Kolom wajib tidak ditemukan: ${missing.join(', ')}`;
-                errorBoxCable.classList.add('hidden');
+                errorBoxCable.classList.remove('hidden');
                 loadingStateCable.classList.add('hidden');
                 return;
             }
@@ -331,28 +337,155 @@
         [filterLocationCable, filterManufacturerCable, filterCableTypeCable, filterArmoringCable, filterCoreTypeCable, filterNumCoreCable].forEach(el => {
             el.addEventListener('change', applyFiltersAndRenderCable);
         });
+        filterSystemLinkCable.addEventListener('input', applyFiltersAndRenderCable);
 
-        function applyFiltersAndRenderCable() {
-            const sLoc = filterLocationCable.value;
-            const sMan = filterManufacturerCable.value;
-            const sType = filterCableTypeCable.value;
-            const sArmor = filterArmoringCable.value;
-            const sCore = filterCoreTypeCable.value;
-            const sNum = filterNumCoreCable.value;
+        // 34 System & Link mapping rules function
+        function getSystemAndLink(man, cType, coreType, numCore) {
+            const m = String(man || '').trim().toUpperCase();
+            const ct = String(cType || '').trim().toUpperCase();
+            const cr = String(coreType || '').trim().toUpperCase();
+            const nc = String(numCore || '').trim();
 
-            const filtered = globalRawDataCable.filter(row => {
-                if (sLoc !== 'ALL' && (row[globalHeaderMapCable['Location']] || '-') !== sLoc) return false;
-                if (sMan !== 'ALL' && (row[globalHeaderMapCable['Manufacturer']] || '-') !== sMan) return false;
-                if (sType !== 'ALL' && (row[globalHeaderMapCable['Cable Type']] || '-') !== sType) return false;
-                if (sArmor !== 'ALL' && (row[globalHeaderMapCable['Armoring']] || '-') !== sArmor) return false;
-                if (sCore !== 'ALL' && String(row[globalHeaderMapCable['Core Type']] || '-').toUpperCase() !== sCore) return false;
-                if (sNum !== 'ALL' && (row[globalHeaderMapCable['# Core']] || '-') !== sNum) return false;
-                return true;
-            });
-            buildPivotTableCable(filtered);
+            if (m === 'ASN' && ct === 'OALC4' && cr === 'SUMITOMO Z+' && nc === '4') {
+                return [
+                    { sys: 'SMPCS#1', links: ['BU 1 - BU 2', 'BU 2 - BMH TERNATE', 'BU 3 - BU 4', 'BU 4 - BMH LABUHA', 'BU 5 - BMH SANANA', 'BU 6 - BMH NAMLEA', 'BU 9 - BMH KENDARI', 'BU 7 - BMH MASOHI'] },
+                    { sys: 'MARIMAR', links: ['BU 13 - Selayar', 'Bau bau - BU 11', 'Wangi wangi - BU 10'] }
+                ];
+            }
+            if (m === 'ASN' && ct === 'OALC4' && cr === 'SUMITOMO Z+' && nc === '6') {
+                return [
+                    { sys: 'SMPCS#1', links: ['BMH TERSILI - BU 9', 'BMH TERSILI - BU 7', 'BU 7 - BU 8', 'BU 8 - BMH BANDANEIRA', 'BU 8 - BMH FAK-FAK'] },
+                    { sys: 'MARIMAR', links: ['Kalukubodo - BU 13', 'BU 13 - BU 12', 'BU 12 - BU 11', 'BU 11 - BU 10', 'BU 10 - BU 9'] }
+                ];
+            }
+            if (m === 'ASN' && ct === 'OALC4' && cr === 'SUMITOMO Z+' && nc === '8') {
+                return [
+                    { sys: 'SMPCS#1', links: ['BMH KAUDITAN - BU 1', 'BU 1 - BU 3', 'BU 2 - BMH SOFIFI', 'BU 4 - BMH SORONG', 'BU 3 - BU 5', 'BU 5 - BU 6', 'BU 6 - BMH TERSILI'] },
+                    { sys: 'MARIMAR', links: ['BU 12 - Maumere'] }
+                ];
+            }
+            if (m === 'ASN' && ct === 'URC-2' && cr === 'G.652' && nc === '4') {
+                return [{ sys: 'HPBB', links: ['Anyer - Kalianda'] }];
+            }
+            if (m === 'KDD' && ct === 'OS-SS' && cr === 'G.653' && nc === '4') {
+                return [{ sys: 'SUB', links: ['Ujung Pangkah - Takisung', 'Takisung - Kalukubodo', 'Ujung Pangkah - Kalukubodo'] }];
+            }
+            if (m === 'PIRELLI' && ct === 'PIRELLI' && cr === 'G.653' && nc === '4') {
+                return [{ sys: 'HPBB', links: ['Puak - Batam'] }];
+            }
+            if (m === 'NEXANS' && ct === 'URC-1' && cr === 'SUMITOMO Z' && nc === '4') {
+                return [{ sys: 'MKCS', links: ['Waingapu - BU2'] }];
+            }
+            if (m === 'NEXANS' && ct === 'URC-1' && cr === 'SUMITOMO Z' && nc === '12') {
+                return [
+                    { sys: 'MKCS', links: ['Ende - Kupang'] },
+                    { sys: 'LOCS', links: ['Labuha - Obi'] }
+                ];
+            }
+            if (m === 'NEXANS' && ct === 'URC-1' && cr === 'SUMITOMO Z+' && nc === '4') {
+                return [{ sys: 'MKCS', links: ['Batu Gong Sumbawa - BU1'] }];
+            }
+            if (m === 'NEXANS' && ct === 'URC-1' && cr === 'SUMITOMO Z+' && nc === '12') {
+                return [{ sys: 'MKCS', links: ['Senggigi - Ambalawi', 'Tente - Ende'] }];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-36' && cr === 'EX-2000' && nc === '4') {
+                return [{ sys: 'IKK', links: ['Lewoleba - BU2'] }];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-36' && cr === 'EX-2000' && nc === '6') {
+                return [{ sys: 'ASBL', links: ['Kalabahi - BU1'] }];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-36' && cr === 'EX-2000' && nc === '8') {
+                return [{ sys: 'BALOM', links: ['Nusa Penida - BU1'] }];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-36' && cr === 'EX-2000' && nc === '12') {
+                return [
+                    { sys: 'LTCS', links: ['Luwuk- Tutuyan'] },
+                    { sys: 'ASBL', links: ['Atambua - Larantuka', 'Nias - Sibolga', 'Tj Balai Karimun - Tj Pinggir', 'Banda Aceh - Sabang', 'Simeuleu - Bakongan'] },
+                    { sys: 'IKK', links: ['Sebatik - Nunukan', 'Tarjun - Stagen (Batu Licin - Kota Baru)', 'Padang - Mentawai', 'Selong - Maluk'] },
+                    { sys: 'SLM', links: ['Sabang - Lhokseumawe', 'Lhokseumawe - Pantai Cermin'] },
+                    { sys: 'BAJORABA', links: ['Labuan Bajo - Raba'] },
+                    { sys: 'LUMORI', links: ['Luwuk - BU', 'Morowali - BU', 'Batu Gong Konawe Kendari - BU'] },
+                    { sys: 'Inter Island', links: ['Tj. Pinang - Pulau Galang'] },
+                    { sys: 'BALOM', links: ['Mandalika - BU1', 'BU1 - Sanur'] },
+                    { sys: 'GBCS', links: ['Gresik - BU1', 'BU1 - Bawean', 'BU1 - Stub_LegC'] }
+                ];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-36' && cr === 'G.652' && nc === '12') {
+                return [
+                    { sys: 'Gili Matra', links: ['Trawangan - Meno', 'Meno - Ayer', 'Ayer - Sira'] },
+                    { sys: 'Interisland', links: ['Tj Balai Karimun - BU1', 'Tj. Batu - BU1', 'BU1 - BU2', 'Pulau Burung - BU2', 'Senayang-Lingga Utara', 'Lingga Selatan-Selayar Utara', 'Rao-Morotai'] },
+                    { sys: 'ANAMBAS', links: ['Tarempa - Jemanja', 'Tarempa - Palmatak'] }
+                ];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-36' && cr === 'L-1000' && nc === '12') {
+                return [
+                    { sys: 'JAKA2LADEMA R8', links: ['Sangatta - Donggala', 'Jimbaran - Grajagan'] },
+                    { sys: 'JAKA2LADEMA R9', links: ['Goa Lawah - Senggigi'] },
+                    { sys: 'SBCS', links: ['Sungsong - Muntok'] },
+                    { sys: 'TSCS', links: ['Tarakan - Tanjung Selor'] }
+                ];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-R' && cr === 'L-1000' && nc === '4') {
+                return [{ sys: 'JAKA2LADEMA R4', links: ['BU2 - Ketapang', 'BU3 - Keraya'] }];
+            }
+            if (m === 'NSW' && ct === 'MINISUB-R' && cr === 'L-1000' && nc === '6') {
+                return [{ sys: 'JAKA2LADEMA R4', links: ['Seikakap - BU2', 'BU2 - BU3', 'BU3-Takisung'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC100/SC22S' && cr.includes('4-LMF') && nc === '8') {
+                return [{ sys: 'JASUKA', links: ['Tj. Pandan - Seikakap'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC100/SC22S' && cr === '4-LMFC' && nc === '4') {
+                return [{ sys: 'JASUKA', links: ['Seikakap - Tj. Pinggir'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC300' && cr === '4-LMF' && nc === '4') {
+                return [{ sys: 'JASUKA', links: ['Tj Pakis - Tj Pandan'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr.includes('3FP') && nc === '10') {
+                return [{ sys: 'SMPCS#2', links: ['BU 22.3 - BU 22.1'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr.includes('4FP') && nc === '12') {
+                return [{ sys: 'SMPCS#2', links: ['BU 22.3 - BMH FAK-FAK'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr === 'EX-2000' && nc === '4') {
+                return [{ sys: 'SMPCS#2', links: ['BU 22.1 - BMH TUAL'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr === 'L-1000' && nc === '4') {
+                return [{ sys: 'SMPCS#2', links: ['BU 21.1 - BMH MANOKWARI', 'BU 21.2 - BMH BIAK', 'BU 21.3 - BMH SARMI', 'BU 22.2 - BMH KAIMANA', 'BU 22.4 - BMH TIMIKA'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr === 'L-1000' && nc === '6') {
+                return [{ sys: 'SMPCS#2', links: ['BMH SORONG - BU 21.1', 'BU 21.1 - BU 21.2', 'BU 21.2 - BU 21.3', 'BU 21.3 - BMH JAYAPURA', 'CLS BMH SORONG - BU 22.3', 'BU 22.1 - BU 22.2', 'BU 22.2 - BU 22.4', 'BU 22.4 - BMH MERAUKE'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr === 'L-1000' && nc === '8') {
+                return [{ sys: 'SMPCS#2', links: ['BMH WAISAI - BMH SORONG'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC500' && cr === 'SUMITOMO Z+' && nc === '4') {
+                return [{ sys: 'SEMEWE5', links: ['Dumai - BUB1', 'Medan - BUB2', 'BU1B1 - BU1B2'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC520' && cr === 'SUMITOMO Z+' && nc === '4') {
+                return [{ sys: 'IGG', links: ['BU_BSCS - BU1 (Segmen-1)', 'Takisung - BU3a (Segment-7.3)', 'Bali - BU4 (Segment-8)', 'Makassar - BU5  (Segment-10)', 'Sangatta - BU6a (Segment-13.3)', 'Nunukan - BU7c (Segment-14.6)', 'Mangkajang - BU7a', 'Pramuka - BU2a (Pramuka Extension)'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC520' && cr === 'SUMITOMO Z+' && nc === '8') {
+                return [{ sys: 'IGG', links: ['BU1a - BU1 (Segmen-2)', 'Dumai - BU1a (Segment-2a)', 'BU1 - BU2 (Segment-3)', 'BU2 - BU3 (Segment-5)', 'BU3 - BU4  (Segment-7)', 'BU4 - BU5 (Segment-9)', 'BU5 - BU6 (Segment-11)', 'Balikpapan - BU6  (Segment-12)', 'BU6 - BU7 (Segment-13)', 'BU7b - BU7a (Segment-S14)', 'BU7a - BU7 (Segment-S14)', 'BU7b - BU7c (Segment-14.5)', 'Manado - BU7 (Segment-S15)'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC520' && cr === 'SUMITOMO Z+' && nc === '12') {
+                return [{ sys: 'IGG', links: ['TANJUNG PAKIS - BU2 (Segment-4)', 'Madura - BU3   (Segment-6)'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC520' && cr === 'SUMITOMO Z+' && nc === '16') {
+                return [{ sys: 'IGG', links: ['Tanjungbatu - BU7b (Segment-14)'] }];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC531' && cr === 'EX-2000' && nc === '4') {
+                return [
+                    { sys: 'PATARA-1', links: ['Amai-BU'] },
+                    { sys: 'PATARA-2', links: ['Manokwari-BU1', 'Waisai-BU1', 'BU1-BU2', 'Supiori-BU2', 'BU2-BU Sarmi'] }
+                ];
+            }
+            if (m === 'NEC' && ct === 'OCC-SC531' && cr === 'EX-2000' && nc === '8') {
+                return [{ sys: 'PATARA-1', links: ['Sarmi-BU'] }];
+            }
+
+            return [];
         }
 
-        // Helper function for Max. WD rules
         function getMaxWD(armoring) {
             const armorUpper = String(armoring || '').trim().toUpperCase();
             if (armorUpper === 'DA' || armorUpper === 'DAS') return 200;
@@ -362,7 +495,6 @@
             return 0;
         }
 
-        // Helper function for Min. Spare rules (Cable)
         function getMinSpareCable(armoring) {
             const armorUpper = String(armoring || '').trim().toUpperCase();
             if (armorUpper === 'DA' || armorUpper === 'DAS') return 3000;
@@ -372,9 +504,44 @@
             return 0;
         }
 
+        function applyFiltersAndRenderCable() {
+            const sLoc = filterLocationCable.value;
+            const sMan = filterManufacturerCable.value;
+            const sType = filterCableTypeCable.value;
+            const sArmor = filterArmoringCable.value;
+            const sCore = filterCoreTypeCable.value;
+            const sNum = filterNumCoreCable.value;
+            const sSysLnk = filterSystemLinkCable.value.toLowerCase().trim();
+
+            const filtered = globalRawDataCable.filter(row => {
+                if (sLoc !== 'ALL' && (row[globalHeaderMapCable['Location']] || '-') !== sLoc) return false;
+                if (sMan !== 'ALL' && (row[globalHeaderMapCable['Manufacturer']] || '-') !== sMan) return false;
+                if (sType !== 'ALL' && (row[globalHeaderMapCable['Cable Type']] || '-') !== sType) return false;
+                if (sArmor !== 'ALL' && (row[globalHeaderMapCable['Armoring']] || '-') !== sArmor) return false;
+                if (sCore !== 'ALL' && String(row[globalHeaderMapCable['Core Type']] || '-').toUpperCase() !== sCore) return false;
+                if (sNum !== 'ALL' && (row[globalHeaderMapCable['# Core']] || '-') !== sNum) return false;
+
+                if (sSysLnk) {
+                    const mappings = getSystemAndLink(
+                        row[globalHeaderMapCable['Manufacturer']], 
+                        row[globalHeaderMapCable['Cable Type']], 
+                        row[globalHeaderMapCable['Core Type']], 
+                        row[globalHeaderMapCable['# Core']]
+                    );
+                    const matched = mappings.some(item => 
+                        item.sys.toLowerCase().includes(sSysLnk) || item.links.some(l => l.toLowerCase().includes(sSysLnk))
+                    );
+                    if (!matched) return false;
+                }
+
+                return true;
+            });
+            buildPivotTableCable(filtered);
+        }
+
         function buildPivotTableCable(data) {
             tablesContainerCable.innerHTML = '';
-            processedDataForExportCable = [];
+            currentPivotRowsCable = [];
             if (data.length === 0) {
                 tablesContainerCable.innerHTML = `<div class="p-8 text-center text-slate-500">Tidak ada data yang cocok dengan filter.</div>`;
                 return;
@@ -410,32 +577,41 @@
                 pivotData[key]['Grand Total Measure'] += lenVal;
             });
 
-            const sortedLocations = Array.from(uniqueLocations).sort();
+            currentSortedLocationsCable = Array.from(uniqueLocations).sort();
+            const sortedKeys = Object.keys(pivotData).sort((a, b) => {
+                const rA = pivotData[a], rB = pivotData[b];
+                if (rA['Manufacturer'] !== rB['Manufacturer']) return rA['Manufacturer'].localeCompare(rB['Manufacturer']);
+                if (rA['Cable Type'] !== rB['Cable Type']) return rA['Cable Type'].localeCompare(rB['Cable Type']);
+                return rA['Armoring'].localeCompare(rB['Armoring']);
+            });
+
             let tableHTML = `
                 <table class="min-w-full divide-y divide-slate-200 border-b border-slate-200">
                     <thead class="bg-slate-100 sticky top-0 z-10">
                         <tr>
-                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Manufacturer</th>
-                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Cable Type</th>
-                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Armoring</th>
-                            <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Core Type</th>
-                            <th rowspan="2" class="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase border-r border-slate-300 bg-slate-100"># Core</th>
+                            <th rowspan="2" class="px-3 py-3 text-center text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">System</th>
+                            <th rowspan="2" class="px-3 py-3 text-center text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Link</th>
+                            <th rowspan="2" class="px-3 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Manufacturer</th>
+                            <th rowspan="2" class="px-3 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Cable Type</th>
+                            <th rowspan="2" class="px-3 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Armoring</th>
+                            <th rowspan="2" class="px-3 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Core Type</th>
+                            <th rowspan="2" class="px-3 py-3 text-center text-xs font-semibold text-slate-700 uppercase border-r border-slate-300 bg-slate-100"># Core</th>
             `;
 
-            sortedLocations.forEach(loc => {
+            currentSortedLocationsCable.forEach(loc => {
                 tableHTML += `<th colspan="2" class="px-4 py-2 text-center text-xs font-bold text-slate-800 uppercase border-r border-b border-slate-300 bg-blue-50">${loc}</th>`;
             });
             tableHTML += `
                 <th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-blue-900 uppercase bg-blue-100 border-b border-slate-300">Grand Total</th>
-                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-teal-900 uppercase bg-teal-100 border-l border-slate-300">Max. WD</th>
-                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
-                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-rose-900 uppercase bg-rose-50 border-l border-slate-300">Kekurangan Spare</th>
-                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">Resume</th>
+                <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-teal-900 uppercase bg-teal-100 border-l border-slate-300">Max. WD</th>
+                <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-rose-900 uppercase bg-rose-50 border-l border-slate-300">Kekurangan Spare</th>
+                <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">Resume</th>
             </tr>
             <tr>`;
 
-            sortedLocations.forEach((loc, idx) => {
-                const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
+            currentSortedLocationsCable.forEach((loc, idx) => {
+                const borderClass = idx === currentSortedLocationsCable.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
                 tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 border-r border-slate-200 bg-blue-50/50">Qty</th>
                               <th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 ${borderClass} bg-blue-50/50">Length (Mtr)</th>`;
             });
@@ -444,101 +620,111 @@
                 <th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 bg-blue-100/80">Tot Length</th>
             </tr></thead><tbody class="bg-white divide-y divide-slate-200">`;
 
-            const sortedKeys = Object.keys(pivotData).sort((a, b) => {
-                const rA = pivotData[a], rB = pivotData[b];
-                if (rA['Manufacturer'] !== rB['Manufacturer']) return rA['Manufacturer'].localeCompare(rB['Manufacturer']);
-                if (rA['Cable Type'] !== rB['Cable Type']) return rA['Cable Type'].localeCompare(rB['Cable Type']);
-                return rA['Armoring'].localeCompare(rB['Armoring']);
-            });
-
             const colTotals = {};
-            sortedLocations.forEach(loc => colTotals[loc] = { qty: 0, measure: 0 });
+            currentSortedLocationsCable.forEach(loc => colTotals[loc] = { qty: 0, measure: 0 });
             let superQty = 0, superMeas = 0, totalMinSpare = 0, totalKekurangan = 0;
             let countKurang = 0, countCukup = 0;
 
             sortedKeys.forEach(key => {
                 const row = pivotData[key];
-                const exportRow = { 
-                    'Manufacturer': row['Manufacturer'], 
-                    'Cable Type': row['Cable Type'], 
-                    'Armoring': row['Armoring'], 
-                    'Core Type': row['Core Type'], 
-                    '# Core': row['# Core'] 
-                };
+                const mappings = getSystemAndLink(row['Manufacturer'], row['Cable Type'], row['Core Type'], row['# Core']);
+                
+                let linkLines = [];
+                if (mappings.length > 0) {
+                    mappings.forEach(m => {
+                        m.links.forEach(l => {
+                            linkLines.push({ sys: m.sys, link: l });
+                        });
+                    });
+                } else {
+                    linkLines.push({ sys: '-', link: '-' });
+                }
 
-                tableHTML += `<tr class="hover:bg-yellow-50 transition-colors">
-                    <td class="px-4 py-2 text-sm font-medium text-slate-900 border-r border-slate-100">${row['Manufacturer']}</td>
-                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${row['Cable Type']}</td>
-                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${row['Armoring']}</td>
-                    <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${row['Core Type']}</td>
-                    <td class="px-4 py-2 text-sm text-slate-600 text-center border-r border-slate-300 font-semibold bg-slate-50">${row['# Core']}</td>`;
+                const rowSpanCount = linkLines.length;
+                const maxWDVal = getMaxWD(row['Armoring']);
+                const minSpareVal = getMinSpareCable(row['Armoring']);
+                totalMinSpare += minSpareVal;
 
-                sortedLocations.forEach((loc, idx) => {
-                    const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-100';
-                    const lData = row.locations[loc];
-                    if (lData) {
-                        colTotals[loc].qty += lData.Quantity;
-                        colTotals[loc].measure += lData.TotalMeasure;
-                        exportRow[`${loc} (Qty)`] = lData.Quantity;
-                        exportRow[`${loc} (Total Measure)`] = lData.TotalMeasure;
-                        tableHTML += `<td class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-r border-slate-100">${formatNumber(lData.Quantity)}</td>
-                                      <td class="px-3 py-2 text-sm text-slate-700 text-right ${borderClass} bg-slate-50/50">${formatNumber(lData.TotalMeasure)}</td>`;
-                    } else {
-                        exportRow[`${loc} (Qty)`] = 0; exportRow[`${loc} (Total Measure)`] = 0;
-                        tableHTML += `<td class="px-3 py-2 text-sm text-slate-300 text-right border-r border-slate-100">-</td>
-                                      <td class="px-3 py-2 text-sm text-slate-300 text-right ${borderClass}">-</td>`;
-                    }
-                });
+                let resumeText = row['Grand Total Measure'] < minSpareVal ? 'KURANG' : 'CUKUP';
+                if (resumeText === 'KURANG') countKurang++; else countCukup++;
+
+                let kekuranganVal = resumeText === 'KURANG' ? minSpareVal - row['Grand Total Measure'] : 0;
+                if (kekuranganVal > 0) totalKekurangan += kekuranganVal;
 
                 superQty += row['Grand Total Qty'];
                 superMeas += row['Grand Total Measure'];
-                exportRow['Grand Total Qty'] = row['Grand Total Qty'];
-                exportRow['Grand Total Measure'] = row['Grand Total Measure'];
 
-                const maxWDVal = getMaxWD(row['Armoring']);
-                exportRow['Max. WD'] = maxWDVal;
+                currentSortedLocationsCable.forEach(loc => {
+                    if (row.locations[loc]) {
+                        colTotals[loc].qty += row.locations[loc].Quantity;
+                        colTotals[loc].measure += row.locations[loc].TotalMeasure;
+                    }
+                });
 
-                const minSpareVal = getMinSpareCable(row['Armoring']);
-                totalMinSpare += minSpareVal;
-                exportRow['Min. Spare'] = minSpareVal;
+                // Store row data for excel export
+                currentPivotRowsCable.push({
+                    rowObject: row,
+                    linkLines: linkLines,
+                    maxWD: maxWDVal,
+                    minSpare: minSpareVal,
+                    resume: resumeText,
+                    kekurangan: kekuranganVal > 0 ? kekuranganVal : 0
+                });
 
-                let resumeText = '';
-                if (row['Grand Total Measure'] < minSpareVal) {
-                    resumeText = 'KURANG';
-                    countKurang++;
-                } else {
-                    resumeText = 'CUKUP';
-                    countCukup++;
-                }
-                exportRow['Resume'] = resumeText;
-                const resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
+                linkLines.forEach((item, idx) => {
+                    tableHTML += `<tr class="hover:bg-yellow-50 transition-colors">`;
+                    
+                    if (idx === 0) {
+                        tableHTML += `
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-xs font-semibold text-blue-900 bg-blue-50/40 border-r border-slate-200 align-middle text-center">${item.sys}</td>
+                            <td class="px-3 py-2 text-xs font-medium text-slate-800 border-r border-slate-200 bg-slate-50/20 align-middle">${item.link}</td>
+                            <td rowspan="${rowSpanCount}" class="px-4 py-2 text-sm font-medium text-slate-900 border-r border-slate-100 align-middle">${row['Manufacturer']}</td>
+                            <td rowspan="${rowSpanCount}" class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100 align-middle">${row['Cable Type']}</td>
+                            <td rowspan="${rowSpanCount}" class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100 align-middle">${row['Armoring']}</td>
+                            <td rowspan="${rowSpanCount}" class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100 align-middle">${row['Core Type']}</td>
+                            <td rowspan="${rowSpanCount}" class="px-4 py-2 text-sm text-slate-600 text-center border-r border-slate-300 font-semibold bg-slate-50 align-middle">${row['# Core']}</td>
+                        `;
+                    } else {
+                        tableHTML += `
+                            <td class="px-3 py-2 text-xs font-medium text-slate-800 border-r border-slate-200 bg-slate-50/20 align-middle">${item.link}</td>
+                        `;
+                    }
 
-                let kekuranganVal = 0;
-                if (resumeText === 'KURANG') {
-                    kekuranganVal = minSpareVal - row['Grand Total Measure'];
-                    totalKekurangan += kekuranganVal;
-                }
-                exportRow['Kekurangan Spare'] = kekuranganVal > 0 ? kekuranganVal : 0;
+                    if (idx === 0) {
+                        currentSortedLocationsCable.forEach((loc, locIdx) => {
+                            const borderClass = locIdx === currentSortedLocationsCable.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-100';
+                            const lData = row.locations[loc];
+                            if (lData) {
+                                tableHTML += `<td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-r border-slate-100 align-middle">${formatNumber(lData.Quantity)}</td>
+                                              <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-700 text-right ${borderClass} bg-slate-50/50 align-middle">${formatNumber(lData.TotalMeasure)}</td>`;
+                            } else {
+                                tableHTML += `<td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-300 text-right border-r border-slate-100 align-middle">-</td>
+                                              <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-300 text-right ${borderClass} align-middle">-</td>`;
+                            }
+                        });
 
-                processedDataForExportCable.push(exportRow);
+                        const resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
+                        tableHTML += `
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200 align-middle">${formatNumber(row['Grand Total Qty'])}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300 align-middle">${formatNumber(row['Grand Total Measure'])}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200 align-middle">${formatNumber(maxWDVal)}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200 align-middle">${formatNumber(minSpareVal)}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-r border-slate-200 align-middle">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass} align-middle">${resumeText}</td>
+                        `;
+                    }
 
-                tableHTML += `
-                    <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200">${formatNumber(row['Grand Total Qty'])}</td>
-                    <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300">${formatNumber(row['Grand Total Measure'])}</td>
-                    <td class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200">${formatNumber(maxWDVal)}</td>
-                    <td class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200">${formatNumber(minSpareVal)}</td>
-                    <td class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-r border-slate-200">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
-                    <td class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass}">${resumeText}</td>
-                </tr>`;
+                    tableHTML += `</tr>`;
+                });
             });
 
             tableHTML += `
                 </tbody>
                 <tfoot class="bg-slate-200 border-t-2 border-slate-400">
                     <tr>
-                        <td colspan="5" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
-            sortedLocations.forEach((loc, idx) => {
-                const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
+                        <td colspan="7" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
+            currentSortedLocationsCable.forEach((loc, idx) => {
+                const borderClass = idx === currentSortedLocationsCable.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
                 tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-r border-slate-300">${formatNumber(colTotals[loc].qty)}</td>
                               <td class="px-3 py-3 text-sm font-black text-slate-900 text-right ${borderClass}">${formatNumber(colTotals[loc].measure)}</td>`;
             });
@@ -559,11 +745,124 @@
         }
 
         downloadBtnCable.addEventListener('click', function() {
-            if (processedDataForExportCable.length === 0) return;
-            const worksheet = XLSX.utils.json_to_sheet(processedDataForExportCable);
+            if (currentPivotRowsCable.length === 0) return;
+
+            const locs = currentSortedLocationsCable;
+            const headersRow1 = ['System', 'Link', 'Manufacturer', 'Cable Type', 'Armoring', 'Core Type', '# Core'];
+            const headersRow2 = ['System', 'Link', 'Manufacturer', 'Cable Type', 'Armoring', 'Core Type', '# Core'];
+
+            locs.forEach(loc => {
+                headersRow1.push(loc, '');
+                headersRow2.push('Qty', 'Length (Mtr)');
+            });
+            headersRow1.push('Grand Total', '', 'Max. WD', 'Min. Spare', 'Kekurangan Spare', 'Resume');
+            headersRow2.push('Tot Qty', 'Tot Length', '', '', '', '');
+
+            const aoa = [headersRow1, headersRow2];
+            const merges = [
+                { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } },
+                { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } },
+                { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } },
+                { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } },
+                { s: { r: 0, c: 4 }, e: { r: 1, c: 4 } },
+                { s: { r: 0, c: 5 }, e: { r: 1, c: 5 } },
+                { s: { r: 0, c: 6 }, e: { r: 1, c: 6 } }
+            ];
+
+            let colIdx = 7;
+            locs.forEach(() => {
+                merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: colIdx + 1 } });
+                colIdx += 2;
+            });
+            // Grand Total merge
+            merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: colIdx + 1 } });
+            colIdx += 2;
+
+            // Single metric columns merges
+            for (let i = 0; i < 4; i++) {
+                merges.push({ s: { r: 0, c: colIdx + i }, e: { r: 1, c: colIdx + i } });
+            }
+
+            let currentRow = 2;
+            const colTotals = {};
+            locs.forEach(l => colTotals[l] = { qty: 0, measure: 0 });
+            let grandTotQty = 0, grandTotMeas = 0, totalMinSpare = 0, totalKekurangan = 0;
+            let countKurang = 0, countCukup = 0;
+
+            currentPivotRowsCable.forEach(item => {
+                const rowObj = item.rowObject;
+                const linkLines = item.linkLines;
+                const span = linkLines.length;
+                const startR = currentRow;
+
+                linkLines.forEach((lItem, idx) => {
+                    const rowArr = [];
+                    if (idx === 0) {
+                        rowArr.push(lItem.sys, lItem.link, rowObj['Manufacturer'], rowObj['Cable Type'], rowObj['Armoring'], rowObj['Core Type'], rowObj['# Core']);
+                        locs.forEach(loc => {
+                            const lData = rowObj.locations[loc];
+                            rowArr.push(lData ? lData.Quantity : 0, lData ? lData.TotalMeasure : 0);
+                        });
+                        rowArr.push(rowObj['Grand Total Qty'], rowObj['Grand Total Measure'], item.maxWD, item.minSpare, item.kekurangan, item.resume);
+                    } else {
+                        rowArr.push('', lItem.link, '', '', '', '', '');
+                        locs.forEach(() => rowArr.push('', ''));
+                        rowArr.push('', '', '', '', '', '');
+                    }
+                    aoa.push(rowArr);
+                    currentRow++;
+                });
+
+                if (span > 1) {
+                    merges.push({ s: { r: startR, c: 0 }, e: { r: startR + span - 1, c: 0 } });
+                    merges.push({ s: { r: startR, c: 2 }, e: { r: startR + span - 1, c: 2 } });
+                    merges.push({ s: { r: startR, c: 3 }, e: { r: startR + span - 1, c: 3 } });
+                    merges.push({ s: { r: startR, c: 4 }, e: { r: startR + span - 1, c: 4 } });
+                    merges.push({ s: { r: startR, c: 5 }, e: { r: startR + span - 1, c: 5 } });
+                    merges.push({ s: { r: startR, c: 6 }, e: { r: startR + span - 1, c: 6 } });
+
+                    let mCol = 7;
+                    locs.forEach(() => {
+                        merges.push({ s: { r: startR, c: mCol }, e: { r: startR + span - 1, c: mCol } });
+                        merges.push({ s: { r: startR, c: mCol + 1 }, e: { r: startR + span - 1, c: mCol + 1 } });
+                        mCol += 2;
+                    });
+                    merges.push({ s: { r: startR, c: mCol }, e: { r: startR + span - 1, c: mCol } });
+                    merges.push({ s: { r: startR, c: mCol + 1 }, e: { r: startR + span - 1, c: mCol + 1 } });
+                    mCol += 2;
+                    for (let k = 0; k < 4; k++) {
+                        merges.push({ s: { r: startR, c: mCol + k }, e: { r: startR + span - 1, c: mCol + k } });
+                    }
+                }
+
+                grandTotQty += rowObj['Grand Total Qty'];
+                grandTotMeas += rowObj['Grand Total Measure'];
+                totalMinSpare += item.minSpare;
+                if (item.kekurangan > 0) totalKekurangan += item.kekurangan;
+                if (item.resume === 'KURANG') countKurang++; else countCukup++;
+
+                locs.forEach(loc => {
+                    if (rowObj.locations[loc]) {
+                        colTotals[loc].qty += rowObj.locations[loc].Quantity;
+                        colTotals[loc].measure += rowObj.locations[loc].TotalMeasure;
+                    }
+                });
+            });
+
+            // Tfoot row
+            const footerRow = ['TOTAL KESELURUHAN:', '', '', '', '', '', ''];
+            locs.forEach(loc => {
+                footerRow.push(colTotals[loc].qty, colTotals[loc].measure);
+            });
+            footerRow.push(grandTotQty, grandTotMeas, '-', totalMinSpare, totalKekurangan, `${countKurang} KURANG / ${countCukup} CUKUP`);
+            aoa.push(footerRow);
+            merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 6 } });
+
+            const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+            worksheet['!merges'] = merges;
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Cable Summary");
-            XLSX.writeFile(workbook, "Filtered_Summary_" + (originalFileNameCable || "Cable_Inventory").replace(/\.[^/.]+$/, "") + ".xlsx");
+            XLSX.writeFile(workbook, "Cable_Pivot_Summary_" + (originalFileNameCable || "Export").replace(/\.[^/.]+$/, "") + ".xlsx");
         });
 
 
@@ -622,7 +921,7 @@
             const weightCol = findCol('weight');
 
             if (!partCol || !qtyCol || !weightCol) {
-                showErrorKit(`Kolom yang dibutuhkan tidak lengkap. Butuh: Part, Qty, Weight. Terdeteksi: ${headers.join(', ')}`);
+                showErrorKit(`Kolom yang dibutuhkan tidak lengkap. Butuh: Part, Qty, Weight.`);
                 return;
             }
 
@@ -667,17 +966,11 @@
             const sortedKeys = Array.from(partMap.keys()).sort((a, b) => {
                 const objA = partMap.get(a);
                 const objB = partMap.get(b);
-                
                 const isNullA = (!objA.type || objA.type === '-' || objA.type.toLowerCase() === 'null');
                 const isNullB = (!objB.type || objB.type === '-' || objB.type.toLowerCase() === 'null');
-
                 if (isNullA && !isNullB) return 1;
                 if (!isNullA && isNullB) return -1;
-
-                if (objA.type !== objB.type) {
-                    return objA.type.localeCompare(objB.type);
-                }
-
+                if (objA.type !== objB.type) return objA.type.localeCompare(objB.type);
                 return objA.partNo.localeCompare(objB.partNo);
             });
 
@@ -705,18 +998,10 @@
             });
         }
 
-        // Helper function for Min. Spare rules (Kits)
         function getMinSpareKit(typeVal) {
             const t = String(typeVal || '').trim().toUpperCase();
             if (t === 'END SPECIFIC KIT') return 24;
-            if (
-                t === 'ADHESIVE KIT' || 
-                t === 'ARMOR PROTECTION KIT' || 
-                t === 'BUFFER SPECIFIC KIT' || 
-                t === 'COMMON KIT' || 
-                t === 'FIBER RESTRAINT' || 
-                t === 'REMOLD KIT'
-            ) {
+            if (t === 'ADHESIVE KIT' || t === 'ARMOR PROTECTION KIT' || t === 'BUFFER SPECIFIC KIT' || t === 'COMMON KIT' || t === 'FIBER RESTRAINT' || t === 'REMOLD KIT') {
                 return 36;
             }
             return 0;
@@ -820,12 +1105,9 @@
                 if (rQty < minSpareVal) {
                     resumeText = 'KURANG';
                     resumeClass = 'text-red-600 font-bold';
-                } else if (rQty >= minSpareVal) {
+                } else {
                     resumeText = 'CUKUP';
                     resumeClass = 'text-blue-700 font-bold';
-                } else {
-                    resumeText = 'UNDEFINE YET';
-                    resumeClass = 'text-slate-500 font-medium italic';
                 }
                 exportRow['RESUME'] = resumeText;
 
