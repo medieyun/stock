@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PapaParse for parsing CSV files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- SheetJS (xlsx) for exporting Excel files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -98,7 +100,7 @@
                 <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
                     <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-blue-500"></i> Cable Pivot Summary</h2>
                     <button id="downloadBtnCable" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
-                        <i class="fa-solid fa-download mr-2"></i> Download CSV
+                        <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
                 </div>
                 <!-- Filter Cable -->
@@ -168,9 +170,9 @@
             <div id="resultsSectionKit" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
                 <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
                     <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Pivot Summary</h2>
-                    <!-- Tombol Download CSV Kits -->
+                    <!-- Tombol Download XLSX Kits -->
                     <button id="downloadBtnKit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
-                        <i class="fa-solid fa-download mr-2"></i> Download CSV
+                        <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
                 </div>
                 <!-- Filter Kit -->
@@ -269,7 +271,7 @@
             const headers = parsedData.meta.fields;
             if (data.length === 0) {
                 errorMessageCable.textContent = "File CSV kosong atau format tidak dikenali.";
-                errorBoxCable.classList.remove('hidden');
+                errorBoxCable.classList.add('hidden');
                 loadingStateCable.classList.add('hidden');
                 return;
             }
@@ -278,7 +280,7 @@
             const missing = requiredColumnsCable.filter(req => !lowerHeaders.includes(req.toLowerCase()));
             if (missing.length > 0) {
                 errorMessageCable.textContent = `Kolom wajib tidak ditemukan: ${missing.join(', ')}`;
-                errorBoxCable.classList.remove('hidden');
+                errorBoxCable.classList.add('hidden');
                 loadingStateCable.classList.add('hidden');
                 return;
             }
@@ -350,33 +352,23 @@
             buildPivotTableCable(filtered);
         }
 
-        // Helper function to calculate Min. Spare based on Armoring rules
-        function getMinSpare(armoring) {
+        // Helper function for Max. WD rules
+        function getMaxWD(armoring) {
             const armorUpper = String(armoring || '').trim().toUpperCase();
-            if (armorUpper === 'DA' || armorUpper === 'DAS') {
-                return 3000;
-            } else if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') {
-                return 15000;
-            } else if (armorUpper === 'LWP') {
-                return 60000;
-            } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
-                return 82500;
-            }
+            if (armorUpper === 'DA' || armorUpper === 'DAS') return 200;
+            if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') return 1000;
+            if (armorUpper === 'LWP') return 4000;
+            if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') return 5500;
             return 0;
         }
 
-        // Helper function to calculate Max. WD based on Armoring rules
-        function getMaxWD(armoring) {
+        // Helper function for Min. Spare rules (Cable)
+        function getMinSpareCable(armoring) {
             const armorUpper = String(armoring || '').trim().toUpperCase();
-            if (armorUpper === 'DA' || armorUpper === 'DAS') {
-                return 200;
-            } else if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') {
-                return 1000;
-            } else if (armorUpper === 'LWP') {
-                return 4000;
-            } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
-                return 5500;
-            }
+            if (armorUpper === 'DA' || armorUpper === 'DAS') return 3000;
+            if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') return 15000;
+            if (armorUpper === 'LWP') return 60000;
+            if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') return 82500;
             return 0;
         }
 
@@ -437,6 +429,7 @@
                 <th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-blue-900 uppercase bg-blue-100 border-b border-slate-300">Grand Total</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-teal-900 uppercase bg-teal-100 border-l border-slate-300">Max. WD</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-rose-900 uppercase bg-rose-50 border-l border-slate-300">Kekurangan Spare</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">Resume</th>
             </tr>
             <tr>`;
@@ -460,7 +453,7 @@
 
             const colTotals = {};
             sortedLocations.forEach(loc => colTotals[loc] = { qty: 0, measure: 0 });
-            let superQty = 0, superMeas = 0, totalMinSpare = 0;
+            let superQty = 0, superMeas = 0, totalMinSpare = 0, totalKekurangan = 0;
             let countKurang = 0, countCukup = 0;
 
             sortedKeys.forEach(key => {
@@ -505,7 +498,7 @@
                 const maxWDVal = getMaxWD(row['Armoring']);
                 exportRow['Max. WD'] = maxWDVal;
 
-                const minSpareVal = getMinSpare(row['Armoring']);
+                const minSpareVal = getMinSpareCable(row['Armoring']);
                 totalMinSpare += minSpareVal;
                 exportRow['Min. Spare'] = minSpareVal;
 
@@ -520,6 +513,13 @@
                 exportRow['Resume'] = resumeText;
                 const resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
 
+                let kekuranganVal = 0;
+                if (resumeText === 'KURANG') {
+                    kekuranganVal = minSpareVal - row['Grand Total Measure'];
+                    totalKekurangan += kekuranganVal;
+                }
+                exportRow['Kekurangan Spare'] = kekuranganVal > 0 ? kekuranganVal : 0;
+
                 processedDataForExportCable.push(exportRow);
 
                 tableHTML += `
@@ -527,6 +527,7 @@
                     <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300">${formatNumber(row['Grand Total Measure'])}</td>
                     <td class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200">${formatNumber(maxWDVal)}</td>
                     <td class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200">${formatNumber(minSpareVal)}</td>
+                    <td class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-r border-slate-200">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
                     <td class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass}">${resumeText}</td>
                 </tr>`;
             });
@@ -546,6 +547,7 @@
                         <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-slate-300">${formatNumber(superMeas)}</td>
                         <td class="px-3 py-3 text-sm font-black text-teal-900 text-right bg-teal-100 border-r border-slate-300">-</td>
                         <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-r border-slate-300">${formatNumber(totalMinSpare)}</td>
+                        <td class="px-3 py-3 text-sm font-black text-rose-800 text-right bg-rose-100 border-r border-slate-300">${formatNumber(totalKekurangan)}</td>
                         <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100">
                             <span class="text-red-600">${countKurang} KURANG</span> / <span class="text-blue-700">${countCukup} CUKUP</span>
                         </td>
@@ -558,12 +560,10 @@
 
         downloadBtnCable.addEventListener('click', function() {
             if (processedDataForExportCable.length === 0) return;
-            const csv = Papa.unparse(processedDataForExportCable);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "Filtered_Summary_" + (originalFileNameCable || "Cable_Inventory.csv");
-            link.click();
+            const worksheet = XLSX.utils.json_to_sheet(processedDataForExportCable);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Cable Summary");
+            XLSX.writeFile(workbook, "Filtered_Summary_" + (originalFileNameCable || "Cable_Inventory").replace(/\.[^/.]+$/, "") + ".xlsx");
         });
 
 
@@ -705,12 +705,11 @@
             });
         }
 
-        // Helper function to calculate Min. Spare for Kits
+        // Helper function for Min. Spare rules (Kits)
         function getMinSpareKit(typeVal) {
             const t = String(typeVal || '').trim().toUpperCase();
-            if (t === 'END SPECIFIC KIT') {
-                return 24;
-            } else if (
+            if (t === 'END SPECIFIC KIT') return 24;
+            if (
                 t === 'ADHESIVE KIT' || 
                 t === 'ARMOR PROTECTION KIT' || 
                 t === 'BUFFER SPECIFIC KIT' || 
@@ -749,6 +748,7 @@
 
             tableHTML += `
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-rose-900 uppercase bg-rose-50 border-l border-slate-300">Kekurangan Spare</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">RESUME</th>
             `;
 
@@ -767,6 +767,7 @@
             displayLocs.forEach(l => colTotal[l] = { qty: 0, weight: 0 });
             let superTot = { qty: 0, weight: 0 };
             let totalMinSpareKit = 0;
+            let totalKekuranganKit = 0;
 
             globalDataKit.parts.forEach(rowKey => {
                 const partObj = globalDataKit.dataMap.get(rowKey);
@@ -828,10 +829,18 @@
                 }
                 exportRow['RESUME'] = resumeText;
 
+                let kekuranganVal = 0;
+                if (resumeText === 'KURANG') {
+                    kekuranganVal = minSpareVal - rQty;
+                    totalKekuranganKit += kekuranganVal;
+                }
+                exportRow['Kekurangan Spare'] = kekuranganVal > 0 ? kekuranganVal : 0;
+
                 processedDataForExportKit.push(exportRow);
 
                 tableHTML += `
                     <td class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-l border-slate-200">${formatNumber(minSpareVal)}</td>
+                    <td class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-l border-slate-200">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
                     <td class="px-3 py-2 text-sm text-center bg-purple-50/30 border-l border-slate-200 ${resumeClass}">${resumeText}</td>
                 </tr>`;
             });
@@ -848,6 +857,7 @@
             }
             tableHTML += `
                 <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-l border-slate-300">${formatNumber(totalMinSpareKit)}</td>
+                <td class="px-3 py-3 text-sm font-black text-rose-800 text-right bg-rose-100 border-l border-slate-300">${formatNumber(totalKekuranganKit)}</td>
                 <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100 border-l border-slate-300">-</td>
             </tr></tfoot></table>`;
 
@@ -856,12 +866,10 @@
 
         downloadBtnKit.addEventListener('click', function() {
             if (processedDataForExportKit.length === 0) return;
-            const csv = Papa.unparse(processedDataForExportKit);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "Filtered_Summary_" + (originalFileNameKit || "Kits_Inventory.csv");
-            link.click();
+            const worksheet = XLSX.utils.json_to_sheet(processedDataForExportKit);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Kits Summary");
+            XLSX.writeFile(workbook, "Filtered_Summary_" + (originalFileNameKit || "Kits_Inventory").replace(/\.[^/.]+$/, "") + ".xlsx");
         });
 
         function showErrorKit(msg) {
