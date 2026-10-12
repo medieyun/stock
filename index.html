@@ -50,7 +50,8 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-4 flex flex-col md:flex-row items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900 mb-1">Inventory Summarizer Dashboard</h1>
-                </div>
+                <p class="text-slate-500 text-sm">Dilengkapi kolom terpisah System & Link dengan struktur Pivot Table bersel-gabung (RowSpan).</p>
+            </div>
             <!-- Tab Navigation Buttons -->
             <div class="flex space-x-2 mt-4 md:mt-0 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                 <button id="tabBtnCable" onclick="switchTab('cable')" class="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm bg-blue-600 text-white flex items-center">
@@ -98,7 +99,7 @@
             <!-- Results Cable -->
             <div id="resultsSectionCable" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
                 <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
-                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-blue-500"></i> Cable Summary</h2>
+                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-blue-500"></i> Cable Pivot Summary (System & Link Terpisah)</h2>
                     <button id="downloadBtnCable" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
                         <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
@@ -174,7 +175,7 @@
             <!-- Results Kit -->
             <div id="resultsSectionKit" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
                 <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
-                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Summary</h2>
+                    <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Pivot Summary</h2>
                     <button id="downloadBtnKit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
                         <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
@@ -193,6 +194,35 @@
                     </div>
                 </div>
                 <div id="tablesContainerKit" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[650px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAIL MODAL POPUP -->
+    <div id="detailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-5xl max-h-[85vh] flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <div>
+                    <h3 id="modalTitle" class="text-lg font-bold text-slate-900">Detail Data Item</h3>
+                    <p id="modalSubtitle" class="text-xs text-slate-500 mt-0.5">Daftar baris raw data yang membentuk nilai kuantitas ini.</p>
+                </div>
+                <button onclick="closeDetailModal()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-auto flex-1 custom-scrollbar">
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table id="modalTable" class="min-w-full divide-y divide-slate-200 text-left text-sm">
+                        <thead class="bg-slate-100 text-xs uppercase font-semibold text-slate-700" id="modalTableHeader"></thead>
+                        <tbody class="divide-y divide-slate-200 bg-white" id="modalTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+                <span id="modalRecordCount" class="text-xs font-semibold text-slate-600">Total: 0 baris</span>
+                <button onclick="closeDetailModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-medium transition-colors shadow-sm">
+                    Tutup
+                </button>
             </div>
         </div>
     </div>
@@ -565,16 +595,19 @@
                 if (!pivotData[key]) {
                     pivotData[key] = {
                         'Manufacturer': man, 'Cable Type': cType, 'Armoring': armor, 'Core Type': cCore, '# Core': nCore,
-                        'locations': {}, 'Grand Total Qty': 0, 'Grand Total Measure': 0
+                        'locations': {}, 'Grand Total Qty': 0, 'Grand Total Measure': 0, 'rawRows': []
                     };
                 }
                 if (!pivotData[key].locations[loc]) {
-                    pivotData[key].locations[loc] = { Quantity: 0, TotalMeasure: 0 };
+                    pivotData[key].locations[loc] = { Quantity: 0, TotalMeasure: 0, rawRows: [] };
                 }
                 pivotData[key].locations[loc].Quantity += 1;
                 pivotData[key].locations[loc].TotalMeasure += lenVal;
+                pivotData[key].locations[loc].rawRows.push(row);
+                
                 pivotData[key]['Grand Total Qty'] += 1;
                 pivotData[key]['Grand Total Measure'] += lenVal;
+                pivotData[key].rawRows.push(row);
             });
 
             currentSortedLocationsCable = Array.from(uniqueLocations).sort();
@@ -621,9 +654,10 @@
             </tr></thead><tbody class="bg-white divide-y divide-slate-200">`;
 
             const colTotals = {};
-            currentSortedLocationsCable.forEach(loc => colTotals[loc] = { qty: 0, measure: 0 });
+            currentSortedLocationsCable.forEach(loc => colTotals[loc] = { qty: 0, measure: 0, rawRows: [] });
             let superQty = 0, superMeas = 0, totalMinSpare = 0, totalKekurangan = 0;
             let countKurang = 0, countCukup = 0;
+            let superRawRows = [];
 
             sortedKeys.forEach(key => {
                 const row = pivotData[key];
@@ -653,15 +687,16 @@
 
                 superQty += row['Grand Total Qty'];
                 superMeas += row['Grand Total Measure'];
+                superRawRows.push(...row.rawRows);
 
                 currentSortedLocationsCable.forEach(loc => {
                     if (row.locations[loc]) {
                         colTotals[loc].qty += row.locations[loc].Quantity;
                         colTotals[loc].measure += row.locations[loc].TotalMeasure;
+                        colTotals[loc].rawRows.push(...row.locations[loc].rawRows);
                     }
                 });
 
-                // Store row data for excel export
                 currentPivotRowsCable.push({
                     rowObject: row,
                     linkLines: linkLines,
@@ -695,7 +730,12 @@
                             const borderClass = locIdx === currentSortedLocationsCable.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-100';
                             const lData = row.locations[loc];
                             if (lData) {
-                                tableHTML += `<td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-r border-slate-100 align-middle">${formatNumber(lData.Quantity)}</td>
+                                const encodedRows = encodeURIComponent(JSON.stringify(lData.rawRows));
+                                tableHTML += `<td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-r border-slate-100 align-middle">
+                                                <a href="javascript:void(0)" onclick="openDetailModal('Location: ${loc} | Specification: ${row['Manufacturer']} - ${row['Cable Type']} (${row['Armoring']})', decodeURIComponent('${encodedRows}'))" class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer flex items-center justify-end gap-1">
+                                                    ${formatNumber(lData.Quantity)} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                                </a>
+                                              </td>
                                               <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-700 text-right ${borderClass} bg-slate-50/50 align-middle">${formatNumber(lData.TotalMeasure)}</td>`;
                             } else {
                                 tableHTML += `<td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-slate-300 text-right border-r border-slate-100 align-middle">-</td>
@@ -704,8 +744,13 @@
                         });
 
                         const resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
+                        const encodedGrandRows = encodeURIComponent(JSON.stringify(row.rawRows));
                         tableHTML += `
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200 align-middle">${formatNumber(row['Grand Total Qty'])}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200 align-middle">
+                                <a href="javascript:void(0)" onclick="openDetailModal('Grand Total | Specification: ${row['Manufacturer']} - ${row['Cable Type']} (${row['Armoring']})', decodeURIComponent('${encodedGrandRows}'))" class="text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center justify-end gap-1">
+                                    ${formatNumber(row['Grand Total Qty'])} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                </a>
+                            </td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300 align-middle">${formatNumber(row['Grand Total Measure'])}</td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200 align-middle">${formatNumber(maxWDVal)}</td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200 align-middle">${formatNumber(minSpareVal)}</td>
@@ -725,11 +770,21 @@
                         <td colspan="7" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
             currentSortedLocationsCable.forEach((loc, idx) => {
                 const borderClass = idx === currentSortedLocationsCable.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
-                tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-r border-slate-300">${formatNumber(colTotals[loc].qty)}</td>
+                const encodedLocTot = encodeURIComponent(JSON.stringify(colTotals[loc].rawRows));
+                tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-r border-slate-300">
+                                <a href="javascript:void(0)" onclick="openDetailModal('Total Location: ${loc}', decodeURIComponent('${encodedLocTot}'))" class="text-blue-900 hover:underline cursor-pointer flex items-center justify-end gap-1">
+                                    ${formatNumber(colTotals[loc].qty)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                                </a>
+                              </td>
                               <td class="px-3 py-3 text-sm font-black text-slate-900 text-right ${borderClass}">${formatNumber(colTotals[loc].measure)}</td>`;
             });
+            const encodedSuperRows = encodeURIComponent(JSON.stringify(superRawRows));
             tableHTML += `
-                        <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-blue-300">${formatNumber(superQty)}</td>
+                        <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-blue-300">
+                            <a href="javascript:void(0)" onclick="openDetailModal('Grand Total Keseluruhan', decodeURIComponent('${encodedSuperRows}'))" class="text-blue-900 hover:underline cursor-pointer flex items-center justify-end gap-1">
+                                ${formatNumber(superQty)} <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                            </a>
+                        </td>
                         <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-slate-300">${formatNumber(superMeas)}</td>
                         <td class="px-3 py-3 text-sm font-black text-teal-900 text-right bg-teal-100 border-r border-slate-300">-</td>
                         <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-r border-slate-300">${formatNumber(totalMinSpare)}</td>
@@ -742,6 +797,48 @@
             </table>`;
 
             tablesContainerCable.innerHTML = tableHTML;
+        }
+
+        // Modal Popup Logic
+        function openDetailModal(title, rawRowsJson) {
+            const rows = JSON.parse(rawRowsJson);
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalSubtitle').textContent = `Menampilkan ${rows.length} baris data CSV terkait.`;
+            document.getElementById('modalRecordCount').textContent = `Total: ${rows.length} baris`;
+
+            const thead = document.getElementById('modalTableHeader');
+            const tbody = document.getElementById('modalTableBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="p-6 text-center text-slate-500">Tidak ada data detail.</td></tr>`;
+                document.getElementById('detailModal').classList.remove('hidden');
+                return;
+            }
+
+            const keys = Object.keys(rows[0]);
+            let headerTr = '<tr>';
+            keys.forEach(k => {
+                headerTr += `<th class="px-4 py-3 border-b border-slate-200 font-semibold">${k}</th>`;
+            });
+            headerTr += '</tr>';
+            thead.innerHTML = headerTr;
+
+            rows.forEach(r => {
+                let tr = '<tr class="hover:bg-slate-50 transition-colors">';
+                keys.forEach(k => {
+                    tr += `<td class="px-4 py-2.5 border-b border-slate-100 text-slate-700">${r[k] !== undefined ? r[k] : '-'}</td>`;
+                });
+                tr += '</tr>';
+                tbody.innerHTML += tr;
+            });
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
         }
 
         downloadBtnCable.addEventListener('click', function() {
@@ -774,11 +871,9 @@
                 merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: colIdx + 1 } });
                 colIdx += 2;
             });
-            // Grand Total merge
             merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: colIdx + 1 } });
             colIdx += 2;
 
-            // Single metric columns merges
             for (let i = 0; i < 4; i++) {
                 merges.push({ s: { r: 0, c: colIdx + i }, e: { r: 1, c: colIdx + i } });
             }
@@ -849,7 +944,6 @@
                 });
             });
 
-            // Tfoot row
             const footerRow = ['TOTAL KESELURUHAN:', '', '', '', '', '', ''];
             locs.forEach(loc => {
                 footerRow.push(colTotals[loc].qty, colTotals[loc].measure);
@@ -958,9 +1052,10 @@
                 }
 
                 const obj = partMap.get(rowKey);
-                if (!obj.locations[loc]) obj.locations[loc] = { qty: 0, weight: 0 };
+                if (!obj.locations[loc]) obj.locations[loc] = { qty: 0, weight: 0, rawRows: [] };
                 obj.locations[loc].qty += qty;
                 obj.locations[loc].weight += weight;
+                obj.locations[loc].rawRows.push(row);
             });
 
             const sortedKeys = Array.from(partMap.keys()).sort((a, b) => {
@@ -1075,15 +1170,22 @@
                     <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${itemName}</td>`;
 
                 let rQty = 0, rWeight = 0;
+                let combinedPartRows = [];
                 displayLocs.forEach(l => {
-                    const lData = partObj.locations[l] || { qty: 0, weight: 0 };
+                    const lData = partObj.locations[l] || { qty: 0, weight: 0, rawRows: [] };
                     rQty += lData.qty; rWeight += lData.weight;
                     colTotal[l].qty += lData.qty; colTotal[l].weight += lData.weight;
+                    if (lData.rawRows) combinedPartRows.push(...lData.rawRows);
 
                     exportRow[`${l} (Qty)`] = lData.qty;
                     exportRow[`${l} (Weight)`] = lData.weight;
 
-                    tableHTML += `<td class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-l-2 border-slate-200">${lData.qty ? formatNumber(lData.qty) : '-'}</td>
+                    const encodedLRows = encodeURIComponent(JSON.stringify(lData.rawRows || []));
+                    tableHTML += `<td class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-l-2 border-slate-200">
+                                    <a href="javascript:void(0)" onclick="openDetailModal('Location: ${l} | Part: ${partNo}', decodeURIComponent('${encodedLRows}'))" class="text-emerald-600 hover:underline cursor-pointer flex items-center justify-end gap-1">
+                                        ${lData.qty ? formatNumber(lData.qty) : '-'} ${lData.qty ? '<i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>' : ''}
+                                    </a>
+                                  </td>
                                   <td class="px-3 py-2 text-sm text-slate-700 text-right">${lData.weight ? formatNumber(lData.weight) : '-'}</td>`;
                 });
 
@@ -1092,7 +1194,12 @@
                     exportRow['Grand Total Qty'] = rQty;
                     exportRow['Grand Total Weight'] = rWeight;
 
-                    tableHTML += `<td class="px-3 py-2 text-sm font-bold text-slate-900 text-right border-l-4 border-slate-300 bg-slate-50">${rQty ? formatNumber(rQty) : '-'}</td>
+                    const encodedCombinedRows = encodeURIComponent(JSON.stringify(combinedPartRows));
+                    tableHTML += `<td class="px-3 py-2 text-sm font-bold text-slate-900 text-right border-l-4 border-slate-300 bg-slate-50">
+                                    <a href="javascript:void(0)" onclick="openDetailModal('Grand Total Part: ${partNo}', decodeURIComponent('${encodedCombinedRows}'))" class="text-emerald-700 hover:underline cursor-pointer flex items-center justify-end gap-1">
+                                        ${rQty ? formatNumber(rQty) : '-'} ${rQty ? '<i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>' : ''}
+                                    </a>
+                                  </td>
                                   <td class="px-3 py-2 text-sm font-bold text-slate-900 text-right bg-slate-50">${rWeight ? formatNumber(rWeight) : '-'}</td>`;
                 }
 
