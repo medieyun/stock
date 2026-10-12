@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Combined Inventory Summarizer</title>
-    <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PapaParse for parsing CSV files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -140,7 +137,7 @@
                         <div class="flex flex-col items-center justify-center pt-5 pb-6">
                             <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
                             <p class="mb-1 text-sm text-slate-600"><span class="font-semibold text-emerald-600">Klik untuk upload CSV Kits</span> atau drag & drop</p>
-                            <p class="text-xs text-slate-500">Kolom wajib: Location, Part Number/Part, Item Name/Description, Qty, Weight</p>
+                            <p class="text-xs text-slate-500">Kolom wajib: Location, Type, Part Number/Part, Item Name/Description, Qty, Weight</p>
                         </div>
                         <input id="csvFileInputKit" type="file" accept=".csv" class="hidden" />
                     </label>
@@ -168,6 +165,9 @@
             <div id="resultsSectionKit" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
                 <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
                     <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Pivot Summary</h2>
+                    <button id="downloadBtnKit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
+                        <i class="fa-solid fa-download mr-2"></i> Download CSV
+                    </button>
                 </div>
                 <!-- Filter Kit -->
                 <div class="p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
@@ -178,8 +178,8 @@
                         </select>
                     </div>
                     <div class="w-full sm:w-2/3">
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Cari Part / Item Name</label>
-                        <input type="text" id="partFilterKit" placeholder="Ketik Part Number atau Item Name..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Cari Type, Part, atau Item Name</label>
+                        <input type="text" id="partFilterKit" placeholder="Ketik Type, Part Number, atau Item Name..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                     </div>
                 </div>
                 <div id="tablesContainerKit" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[600px]"></div>
@@ -301,7 +301,7 @@
                 mans.add(row[globalHeaderMapCable['Manufacturer']] || '-');
                 types.add(row[globalHeaderMapCable['Cable Type']] || '-');
                 armors.add(row[globalHeaderMapCable['Armoring']] || '-');
-                cores.add(row[globalHeaderMapCable['Core Type']] || '-');
+                cores.add(String(row[globalHeaderMapCable['Core Type']] || '-').toUpperCase());
                 numCores.add(row[globalHeaderMapCable['# Core']] || '-');
             });
             fillSelectCable(filterLocationCable, locs, 'All Locations');
@@ -339,11 +339,26 @@
                 if (sMan !== 'ALL' && (row[globalHeaderMapCable['Manufacturer']] || '-') !== sMan) return false;
                 if (sType !== 'ALL' && (row[globalHeaderMapCable['Cable Type']] || '-') !== sType) return false;
                 if (sArmor !== 'ALL' && (row[globalHeaderMapCable['Armoring']] || '-') !== sArmor) return false;
-                if (sCore !== 'ALL' && (row[globalHeaderMapCable['Core Type']] || '-') !== sCore) return false;
+                if (sCore !== 'ALL' && String(row[globalHeaderMapCable['Core Type']] || '-').toUpperCase() !== sCore) return false;
                 if (sNum !== 'ALL' && (row[globalHeaderMapCable['# Core']] || '-') !== sNum) return false;
                 return true;
             });
             buildPivotTableCable(filtered);
+        }
+
+        // Helper function to calculate Min. Spare based on Armoring rules
+        function getMinSpare(armoring) {
+            const armorUpper = String(armoring || '').trim().toUpperCase();
+            if (armorUpper === 'DA' || armorUpper === 'DAS') {
+                return 3000;
+            } else if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') {
+                return 15000;
+            } else if (armorUpper === 'LWP') {
+                return 60000;
+            } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
+                return 82500;
+            }
+            return 0; // default if armoring doesn't match
         }
 
         function buildPivotTableCable(data) {
@@ -362,7 +377,7 @@
                 const man = row[globalHeaderMapCable['Manufacturer']] || '-';
                 const cType = row[globalHeaderMapCable['Cable Type']] || '-';
                 const armor = row[globalHeaderMapCable['Armoring']] || '-';
-                const cCore = row[globalHeaderMapCable['Core Type']] || '-';
+                const cCore = String(row[globalHeaderMapCable['Core Type']] || '-').toUpperCase();
                 const nCore = row[globalHeaderMapCable['# Core']] || '-';
                 const lenVal = parseFloat(String(row[globalHeaderMapCable['Length Measure']] || '0').replace(',', '.')) || 0;
 
@@ -399,15 +414,23 @@
             sortedLocations.forEach(loc => {
                 tableHTML += `<th colspan="2" class="px-4 py-2 text-center text-xs font-bold text-slate-800 uppercase border-r border-b border-slate-300 bg-blue-50">${loc}</th>`;
             });
-            tableHTML += `<th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-blue-900 uppercase bg-blue-100 border-b border-slate-300">Grand Total</th></tr><tr>`;
+            tableHTML += `
+                <th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-blue-900 uppercase bg-blue-100 border-b border-slate-300">Grand Total</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-teal-900 uppercase bg-teal-100 border-l border-slate-300">Max. WD</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">Resume</th>
+            </tr>
+            <tr>`;
 
             sortedLocations.forEach((loc, idx) => {
                 const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
                 tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 border-r border-slate-200 bg-blue-50/50">Qty</th>
                               <th class="px-3 py-2 text-right text-[11px] font-semibold text-slate-600 ${borderClass} bg-blue-50/50">Length (Mtr)</th>`;
             });
-            tableHTML += `<th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 border-r border-slate-200 bg-blue-100/80">Tot Qty</th>
-                          <th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 bg-blue-100/80">Tot Length</th></tr></thead><tbody class="bg-white divide-y divide-slate-200">`;
+            tableHTML += `
+                <th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 border-r border-slate-200 bg-blue-100/80">Tot Qty</th>
+                <th class="px-3 py-2 text-right text-[11px] font-bold text-blue-800 bg-blue-100/80">Tot Length</th>
+            </tr></thead><tbody class="bg-white divide-y divide-slate-200">`;
 
             const sortedKeys = Object.keys(pivotData).sort((a, b) => {
                 const rA = pivotData[a], rB = pivotData[b];
@@ -418,11 +441,33 @@
 
             const colTotals = {};
             sortedLocations.forEach(loc => colTotals[loc] = { qty: 0, measure: 0 });
-            let superQty = 0, superMeas = 0;
+            let superQty = 0, superMeas = 0, totalMinSpare = 0;
+            let countKurang = 0, countCukup = 0;
+
+            // Helper function to calculate Max. WD based on Armoring rules
+            function getMaxWD(armoring) {
+                const armorUpper = String(armoring || '').trim().toUpperCase();
+                if (armorUpper === 'DA' || armorUpper === 'DAS') {
+                    return 200;
+                } else if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') {
+                    return 1000;
+                } else if (armorUpper === 'LWP') {
+                    return 4000;
+                } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
+                    return 5500;
+                }
+                return 0; // default if armoring doesn't match
+            }
 
             sortedKeys.forEach(key => {
                 const row = pivotData[key];
-                const exportRow = { 'Manufacturer': row['Manufacturer'], 'Cable Type': row['Cable Type'], 'Armoring': row['Armoring'], 'Core Type': row['Core Type'], '# Core': row['# Core'] };
+                const exportRow = { 
+                    'Manufacturer': row['Manufacturer'], 
+                    'Cable Type': row['Cable Type'], 
+                    'Armoring': row['Armoring'], 
+                    'Core Type': row['Core Type'], 
+                    '# Core': row['# Core'] 
+                };
 
                 tableHTML += `<tr class="hover:bg-yellow-50 transition-colors">
                     <td class="px-4 py-2 text-sm font-medium text-slate-900 border-r border-slate-100">${row['Manufacturer']}</td>
@@ -452,21 +497,61 @@
                 superMeas += row['Grand Total Measure'];
                 exportRow['Grand Total Qty'] = row['Grand Total Qty'];
                 exportRow['Grand Total Measure'] = row['Grand Total Measure'];
+
+                // Calculate Max. WD
+                const maxWDVal = getMaxWD(row['Armoring']);
+                exportRow['Max. WD'] = maxWDVal;
+
+                // Calculate Min. Spare and Resume
+                const minSpareVal = getMinSpare(row['Armoring']);
+                totalMinSpare += minSpareVal;
+                exportRow['Min. Spare'] = minSpareVal;
+
+                let resumeText = '';
+                let resumeClass = '';
+                if (row['Grand Total Measure'] < minSpareVal) {
+                    resumeText = 'KURANG';
+                    resumeClass = 'text-red-600 font-bold';
+                    countKurang++;
+                } else {
+                    resumeText = 'CUKUP';
+                    resumeClass = 'text-blue-700 font-bold';
+                    countCukup++;
+                }
+                exportRow['Resume'] = resumeText;
+
                 processedDataForExportCable.push(exportRow);
 
-                tableHTML += `<td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200">${formatNumber(row['Grand Total Qty'])}</td>
-                              <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50">${formatNumber(row['Grand Total Measure'])}</td></tr>`;
+                tableHTML += `
+                    <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200">${formatNumber(row['Grand Total Qty'])}</td>
+                    <td class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300">${formatNumber(row['Grand Total Measure'])}</td>
+                    <td class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200">${formatNumber(maxWDVal)}</td>
+                    <td class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200">${formatNumber(minSpareVal)}</td>
+                    <td class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass}">${resumeText}</td>
+                </tr>`;
             });
 
-            tableHTML += `</tbody><tfoot class="bg-slate-200 border-t-2 border-slate-400"><tr>
-                <td colspan="5" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
+            tableHTML += `
+                </tbody>
+                <tfoot class="bg-slate-200 border-t-2 border-slate-400">
+                    <tr>
+                        <td colspan="5" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
             sortedLocations.forEach((loc, idx) => {
                 const borderClass = idx === sortedLocations.length - 1 ? 'border-r border-slate-300' : 'border-r border-slate-200';
                 tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-r border-slate-300">${formatNumber(colTotals[loc].qty)}</td>
                               <td class="px-3 py-3 text-sm font-black text-slate-900 text-right ${borderClass}">${formatNumber(colTotals[loc].measure)}</td>`;
             });
-            tableHTML += `<td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-blue-300">${formatNumber(superQty)}</td>
-                          <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200">${formatNumber(superMeas)}</td></tr></tfoot></table>`;
+            tableHTML += `
+                        <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-blue-300">${formatNumber(superQty)}</td>
+                        <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-slate-300">${formatNumber(superMeas)}</td>
+                        <td class="px-3 py-3 text-sm font-black text-teal-900 text-right bg-teal-100 border-r border-slate-300">-</td>
+                        <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-r border-slate-300">${formatNumber(totalMinSpare)}</td>
+                        <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100">
+                            <span class="text-red-600">${countKurang} KURANG</span> / <span class="text-blue-700">${countCukup} CUKUP</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>`;
 
             tablesContainerCable.innerHTML = tableHTML;
         }
@@ -493,8 +578,11 @@
         const tablesContainerKit = document.getElementById('tablesContainerKit');
         const locationFilterKit = document.getElementById('locationFilterKit');
         const partFilterKit = document.getElementById('partFilterKit');
+        const downloadBtnKit = document.getElementById('downloadBtnKit');
 
         let globalDataKit = { locations: [], parts: [], dataMap: new Map() };
+        let processedDataForExportKit = [];
+        let originalFileNameKit = "";
 
         fileInputKit.addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -502,7 +590,8 @@
             errorBoxKit.style.display = 'none';
             resultsSectionKit.classList.add('hidden');
             loadingStateKit.classList.remove('hidden');
-            fileNameKit.textContent = file.name;
+            originalFileNameKit = file.name;
+            fileNameKit.textContent = originalFileNameKit;
             fileInfoKit.classList.remove('hidden');
 
             Papa.parse(file, {
@@ -527,6 +616,7 @@
 
             const locCol = findCol('location');
             const partCol = findCol('partnumber') || findCol('part');
+            const typeCol = findCol('type');
             const itemCol = findCol('itemname') || findCol('item') || findCol('description');
             const qtyCol = findCol('qty') || findCol('quantity');
             const weightCol = findCol('weight');
@@ -542,7 +632,9 @@
             data.forEach(row => {
                 const loc = (locCol && row[locCol]) ? row[locCol].trim() : 'Unknown Loc';
                 const partNo = (row[partCol] || '').trim();
+                const typeVal = (typeCol && row[typeCol]) ? row[typeCol].trim() : '-';
                 const itemName = (itemCol && row[itemCol]) ? row[itemCol].trim() : '-';
+                
                 if (!partNo && !row[locCol]) return;
 
                 const qty = parseFloat(String(row[qtyCol] || '0').replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
@@ -552,21 +644,46 @@
                 const finalPart = partNo || 'Unknown Part';
                 uniqueLocsSet.add(loc);
 
-                if (!partMap.has(finalPart)) {
-                    partMap.set(finalPart, { itemName: itemName, locations: {}, total: { qty: 0, weight: 0 } });
-                } else if (partMap.get(finalPart).itemName === '-' && itemName !== '-') {
-                    partMap.get(finalPart).itemName = itemName;
+                const rowKey = `${finalPart}|${typeVal}`;
+
+                if (!partMap.has(rowKey)) {
+                    partMap.set(rowKey, { 
+                        partNo: finalPart, 
+                        type: typeVal,
+                        itemName: itemName, 
+                        locations: {}, 
+                        total: { qty: 0, weight: 0 } 
+                    });
+                } else if (partMap.get(rowKey).itemName === '-' && itemName !== '-') {
+                    partMap.get(rowKey).itemName = itemName;
                 }
 
-                const obj = partMap.get(finalPart);
+                const obj = partMap.get(rowKey);
                 if (!obj.locations[loc]) obj.locations[loc] = { qty: 0, weight: 0 };
                 obj.locations[loc].qty += qty;
                 obj.locations[loc].weight += weight;
             });
 
+            const sortedKeys = Array.from(partMap.keys()).sort((a, b) => {
+                const objA = partMap.get(a);
+                const objB = partMap.get(b);
+                
+                const isNullA = (!objA.type || objA.type === '-' || objA.type.toLowerCase() === 'null');
+                const isNullB = (!objB.type || objB.type === '-' || objB.type.toLowerCase() === 'null');
+
+                if (isNullA && !isNullB) return 1;
+                if (!isNullA && isNullB) return -1;
+
+                if (objA.type !== objB.type) {
+                    return objA.type.localeCompare(objB.type);
+                }
+
+                return objA.partNo.localeCompare(objB.partNo);
+            });
+
             globalDataKit = {
                 locations: Array.from(uniqueLocsSet).sort(),
-                parts: Array.from(partMap.keys()).sort(),
+                parts: sortedKeys,
                 dataMap: partMap
             };
 
@@ -593,9 +710,15 @@
             const searchPart = partFilterKit.value.toLowerCase().trim();
             let displayLocs = filterLoc === 'all' ? globalDataKit.locations : [filterLoc];
 
-            if (globalDataKit.parts.length === 0) return;
+            processedDataForExportKit = []; // Reset data export setiap render
+
+            if (globalDataKit.parts.length === 0) {
+                tablesContainerKit.innerHTML = `<div class="p-8 text-center text-slate-500">Tidak ada data yang tersedia.</div>`;
+                return;
+            }
 
             let tableHTML = `<table class="min-w-full divide-y divide-slate-200 border-b border-slate-200"><thead class="bg-slate-100 sticky top-0 z-10"><tr>
+                <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Type</th>
                 <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Part Number</th>
                 <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase border-r border-slate-200 bg-slate-100">Item Name</th>`;
 
@@ -605,6 +728,12 @@
             if (filterLoc === 'all') {
                 tableHTML += `<th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-slate-900 uppercase border-l-4 border-slate-400 bg-slate-300">Grand Total Part</th>`;
             }
+
+            // Tambahan Kolom Min. Spare dan RESUME di Header
+            tableHTML += `
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">RESUME</th>
+            `;
 
             tableHTML += `</tr><tr>`;
             displayLocs.forEach(() => {
@@ -620,16 +749,45 @@
             let colTotal = {};
             displayLocs.forEach(l => colTotal[l] = { qty: 0, weight: 0 });
             let superTot = { qty: 0, weight: 0 };
+            let totalMinSpareKit = 0;
 
-            globalDataKit.parts.forEach(part => {
-                const partObj = globalDataKit.dataMap.get(part);
+            // Helper function untuk menghitung Min. Spare Kits berdasarkan Type
+            function getMinSpareKit(typeVal) {
+                const t = String(typeVal || '').trim().toUpperCase();
+                if (t === 'END SPECIFIC KIT') {
+                    return 24;
+                } else if (
+                    t === 'ADHESIVE KIT' || 
+                    t === 'ARMOR PROTECTION KIT' || 
+                    t === 'BUFFER SPECIFIC KIT' || 
+                    t === 'COMMON KIT' || 
+                    t === 'FIBER RESTRAINT' || 
+                    t === 'REMOLD KIT'
+                ) {
+                    return 36;
+                }
+                return 0;
+            }
+
+            globalDataKit.parts.forEach(rowKey => {
+                const partObj = globalDataKit.dataMap.get(rowKey);
+                const partNo = partObj.partNo;
+                const typeVal = partObj.type;
                 const itemName = partObj.itemName || '-';
 
-                if (searchPart && !part.toLowerCase().includes(searchPart) && !itemName.toLowerCase().includes(searchPart)) return;
+                if (searchPart && !partNo.toLowerCase().includes(searchPart) && !itemName.toLowerCase().includes(searchPart) && !typeVal.toLowerCase().includes(searchPart)) return;
                 if (filterLoc !== 'all' && (!partObj.locations[filterLoc] || (partObj.locations[filterLoc].qty === 0 && partObj.locations[filterLoc].weight === 0))) return;
 
+                // Object untuk Export CSV
+                const exportRow = {
+                    'Type': typeVal,
+                    'Part Number': partNo,
+                    'Item Name': itemName
+                };
+
                 tableHTML += `<tr class="hover:bg-yellow-50 transition-colors">
-                    <td class="px-4 py-2 text-sm font-semibold text-slate-900 border-r border-slate-100">${part}</td>
+                    <td class="px-4 py-2 text-sm text-slate-700 font-medium border-r border-slate-100">${typeVal}</td>
+                    <td class="px-4 py-2 text-sm font-semibold text-slate-900 border-r border-slate-100">${partNo}</td>
                     <td class="px-4 py-2 text-sm text-slate-600 border-r border-slate-100">${itemName}</td>`;
 
                 let rQty = 0, rWeight = 0;
@@ -638,20 +796,55 @@
                     rQty += lData.qty; rWeight += lData.weight;
                     colTotal[l].qty += lData.qty; colTotal[l].weight += lData.weight;
 
+                    // Mengisi nilai untuk Export CSV berdasarkan Location
+                    exportRow[`${l} (Qty)`] = lData.qty;
+                    exportRow[`${l} (Weight)`] = lData.weight;
+
                     tableHTML += `<td class="px-3 py-2 text-sm text-slate-900 font-bold text-right border-l-2 border-slate-200">${lData.qty ? formatNumber(lData.qty) : '-'}</td>
                                   <td class="px-3 py-2 text-sm text-slate-700 text-right">${lData.weight ? formatNumber(lData.weight) : '-'}</td>`;
                 });
 
                 superTot.qty += rQty; superTot.weight += rWeight;
                 if (filterLoc === 'all') {
+                    // Menyimpan nilai Grand Total pada baris Export CSV
+                    exportRow['Grand Total Qty'] = rQty;
+                    exportRow['Grand Total Weight'] = rWeight;
+
                     tableHTML += `<td class="px-3 py-2 text-sm font-bold text-slate-900 text-right border-l-4 border-slate-300 bg-slate-50">${rQty ? formatNumber(rQty) : '-'}</td>
                                   <td class="px-3 py-2 text-sm font-bold text-slate-900 text-right bg-slate-50">${rWeight ? formatNumber(rWeight) : '-'}</td>`;
                 }
-                tableHTML += `</tr>`;
+
+                // Hitung Min. Spare
+                const minSpareVal = getMinSpareKit(typeVal);
+                totalMinSpareKit += minSpareVal;
+                exportRow['Min. Spare'] = minSpareVal;
+
+                // Hitung RESUME
+                let resumeText = '';
+                let resumeClass = '';
+                if (rQty < minSpareVal) {
+                    resumeText = 'KURANG';
+                    resumeClass = 'text-red-600 font-bold';
+                } else if (rQty >= minSpareVal) {
+                    resumeText = 'CUKUP';
+                    resumeClass = 'text-blue-700 font-bold';
+                } else {
+                    resumeText = 'UNDEFINE YET';
+                    resumeClass = 'text-slate-500 font-medium italic';
+                }
+                exportRow['RESUME'] = resumeText;
+
+                // Masukkan baris data ke Array Export
+                processedDataForExportKit.push(exportRow);
+
+                tableHTML += `
+                    <td class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-l border-slate-200">${formatNumber(minSpareVal)}</td>
+                    <td class="px-3 py-2 text-sm text-center bg-purple-50/30 border-l border-slate-200 ${resumeClass}">${resumeText}</td>
+                </tr>`;
             });
 
             tableHTML += `</tbody><tfoot class="bg-slate-200 border-t-2 border-slate-400"><tr>
-                <td colspan="2" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
+                <td colspan="3" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
             displayLocs.forEach(l => {
                 tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-l-2 border-slate-300">${formatNumber(colTotal[l].qty)}</td>
                               <td class="px-3 py-3 text-sm font-black text-slate-900 text-right">${formatNumber(colTotal[l].weight)}</td>`;
@@ -660,19 +853,12 @@
                 tableHTML += `<td class="px-3 py-3 text-sm font-black text-slate-900 text-right border-l-4 border-slate-400 bg-slate-300">${formatNumber(superTot.qty)}</td>
                               <td class="px-3 py-3 text-sm font-black text-slate-900 text-right bg-slate-300">${formatNumber(superTot.weight)}</td>`;
             }
-            tableHTML += `</tr></tfoot></table>`;
+            tableHTML += `
+                <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-l border-slate-300">${formatNumber(totalMinSpareKit)}</td>
+                <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100 border-l border-slate-300">-</td>
+            </tr></tfoot></table>`;
 
             tablesContainerKit.innerHTML = tableHTML;
         }
 
-        function showErrorKit(msg) {
-            errorMessageKit.textContent = msg;
-            errorBoxKit.style.display = 'block';
-            loadingStateKit.classList.add('hidden');
-        }
-
-        locationFilterKit.addEventListener('change', renderTableKit);
-        partFilterKit.addEventListener('input', renderTableKit);
-    </script>
-</body>
-</html>
+        // Logic fungsi Download CSV untuk Kits Inventory
