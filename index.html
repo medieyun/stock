@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Combined Inventory Summarizer</title>
+    <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for parsing CSV files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -165,6 +168,7 @@
             <div id="resultsSectionKit" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
                 <div class="p-4 sm:p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center bg-slate-50">
                     <h2 class="text-xl font-semibold text-slate-800 mb-3 sm:mb-0"><i class="fa-solid fa-table-cells mr-2 text-emerald-500"></i> Kits Pivot Summary</h2>
+                    <!-- Tombol Download CSV Kits -->
                     <button id="downloadBtnKit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm shadow-sm flex items-center">
                         <i class="fa-solid fa-download mr-2"></i> Download CSV
                     </button>
@@ -358,7 +362,22 @@
             } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
                 return 82500;
             }
-            return 0; // default if armoring doesn't match
+            return 0;
+        }
+
+        // Helper function to calculate Max. WD based on Armoring rules
+        function getMaxWD(armoring) {
+            const armorUpper = String(armoring || '').trim().toUpperCase();
+            if (armorUpper === 'DA' || armorUpper === 'DAS') {
+                return 200;
+            } else if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') {
+                return 1000;
+            } else if (armorUpper === 'LWP') {
+                return 4000;
+            } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
+                return 5500;
+            }
+            return 0;
         }
 
         function buildPivotTableCable(data) {
@@ -444,21 +463,6 @@
             let superQty = 0, superMeas = 0, totalMinSpare = 0;
             let countKurang = 0, countCukup = 0;
 
-            // Helper function to calculate Max. WD based on Armoring rules
-            function getMaxWD(armoring) {
-                const armorUpper = String(armoring || '').trim().toUpperCase();
-                if (armorUpper === 'DA' || armorUpper === 'DAS') {
-                    return 200;
-                } else if (armorUpper === 'SA' || armorUpper === 'SAL' || armorUpper === 'SAM') {
-                    return 1000;
-                } else if (armorUpper === 'LWP') {
-                    return 4000;
-                } else if (armorUpper === 'LW' || armorUpper === 'LWA' || armorUpper === 'LWS') {
-                    return 5500;
-                }
-                return 0; // default if armoring doesn't match
-            }
-
             sortedKeys.forEach(key => {
                 const row = pivotData[key];
                 const exportRow = { 
@@ -498,27 +502,23 @@
                 exportRow['Grand Total Qty'] = row['Grand Total Qty'];
                 exportRow['Grand Total Measure'] = row['Grand Total Measure'];
 
-                // Calculate Max. WD
                 const maxWDVal = getMaxWD(row['Armoring']);
                 exportRow['Max. WD'] = maxWDVal;
 
-                // Calculate Min. Spare and Resume
                 const minSpareVal = getMinSpare(row['Armoring']);
                 totalMinSpare += minSpareVal;
                 exportRow['Min. Spare'] = minSpareVal;
 
                 let resumeText = '';
-                let resumeClass = '';
                 if (row['Grand Total Measure'] < minSpareVal) {
                     resumeText = 'KURANG';
-                    resumeClass = 'text-red-600 font-bold';
                     countKurang++;
                 } else {
                     resumeText = 'CUKUP';
-                    resumeClass = 'text-blue-700 font-bold';
                     countCukup++;
                 }
                 exportRow['Resume'] = resumeText;
+                const resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
 
                 processedDataForExportCable.push(exportRow);
 
@@ -705,12 +705,30 @@
             });
         }
 
+        // Helper function to calculate Min. Spare for Kits
+        function getMinSpareKit(typeVal) {
+            const t = String(typeVal || '').trim().toUpperCase();
+            if (t === 'END SPECIFIC KIT') {
+                return 24;
+            } else if (
+                t === 'ADHESIVE KIT' || 
+                t === 'ARMOR PROTECTION KIT' || 
+                t === 'BUFFER SPECIFIC KIT' || 
+                t === 'COMMON KIT' || 
+                t === 'FIBER RESTRAINT' || 
+                t === 'REMOLD KIT'
+            ) {
+                return 36;
+            }
+            return 0;
+        }
+
         function renderTableKit() {
             const filterLoc = locationFilterKit.value;
             const searchPart = partFilterKit.value.toLowerCase().trim();
             let displayLocs = filterLoc === 'all' ? globalDataKit.locations : [filterLoc];
 
-            processedDataForExportKit = []; // Reset data export setiap render
+            processedDataForExportKit = [];
 
             if (globalDataKit.parts.length === 0) {
                 tablesContainerKit.innerHTML = `<div class="p-8 text-center text-slate-500">Tidak ada data yang tersedia.</div>`;
@@ -729,7 +747,6 @@
                 tableHTML += `<th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-slate-900 uppercase border-l-4 border-slate-400 bg-slate-300">Grand Total Part</th>`;
             }
 
-            // Tambahan Kolom Min. Spare dan RESUME di Header
             tableHTML += `
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">RESUME</th>
@@ -751,24 +768,6 @@
             let superTot = { qty: 0, weight: 0 };
             let totalMinSpareKit = 0;
 
-            // Helper function untuk menghitung Min. Spare Kits berdasarkan Type
-            function getMinSpareKit(typeVal) {
-                const t = String(typeVal || '').trim().toUpperCase();
-                if (t === 'END SPECIFIC KIT') {
-                    return 24;
-                } else if (
-                    t === 'ADHESIVE KIT' || 
-                    t === 'ARMOR PROTECTION KIT' || 
-                    t === 'BUFFER SPECIFIC KIT' || 
-                    t === 'COMMON KIT' || 
-                    t === 'FIBER RESTRAINT' || 
-                    t === 'REMOLD KIT'
-                ) {
-                    return 36;
-                }
-                return 0;
-            }
-
             globalDataKit.parts.forEach(rowKey => {
                 const partObj = globalDataKit.dataMap.get(rowKey);
                 const partNo = partObj.partNo;
@@ -778,7 +777,6 @@
                 if (searchPart && !partNo.toLowerCase().includes(searchPart) && !itemName.toLowerCase().includes(searchPart) && !typeVal.toLowerCase().includes(searchPart)) return;
                 if (filterLoc !== 'all' && (!partObj.locations[filterLoc] || (partObj.locations[filterLoc].qty === 0 && partObj.locations[filterLoc].weight === 0))) return;
 
-                // Object untuk Export CSV
                 const exportRow = {
                     'Type': typeVal,
                     'Part Number': partNo,
@@ -796,7 +794,6 @@
                     rQty += lData.qty; rWeight += lData.weight;
                     colTotal[l].qty += lData.qty; colTotal[l].weight += lData.weight;
 
-                    // Mengisi nilai untuk Export CSV berdasarkan Location
                     exportRow[`${l} (Qty)`] = lData.qty;
                     exportRow[`${l} (Weight)`] = lData.weight;
 
@@ -806,7 +803,6 @@
 
                 superTot.qty += rQty; superTot.weight += rWeight;
                 if (filterLoc === 'all') {
-                    // Menyimpan nilai Grand Total pada baris Export CSV
                     exportRow['Grand Total Qty'] = rQty;
                     exportRow['Grand Total Weight'] = rWeight;
 
@@ -814,12 +810,10 @@
                                   <td class="px-3 py-2 text-sm font-bold text-slate-900 text-right bg-slate-50">${rWeight ? formatNumber(rWeight) : '-'}</td>`;
                 }
 
-                // Hitung Min. Spare
                 const minSpareVal = getMinSpareKit(typeVal);
                 totalMinSpareKit += minSpareVal;
                 exportRow['Min. Spare'] = minSpareVal;
 
-                // Hitung RESUME
                 let resumeText = '';
                 let resumeClass = '';
                 if (rQty < minSpareVal) {
@@ -834,7 +828,6 @@
                 }
                 exportRow['RESUME'] = resumeText;
 
-                // Masukkan baris data ke Array Export
                 processedDataForExportKit.push(exportRow);
 
                 tableHTML += `
@@ -861,4 +854,24 @@
             tablesContainerKit.innerHTML = tableHTML;
         }
 
-        // Logic fungsi Download CSV untuk Kits Inventory
+        downloadBtnKit.addEventListener('click', function() {
+            if (processedDataForExportKit.length === 0) return;
+            const csv = Papa.unparse(processedDataForExportKit);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Filtered_Summary_" + (originalFileNameKit || "Kits_Inventory.csv");
+            link.click();
+        });
+
+        function showErrorKit(msg) {
+            errorMessageKit.textContent = msg;
+            errorBoxKit.style.display = 'block';
+            loadingStateKit.classList.add('hidden');
+        }
+
+        locationFilterKit.addEventListener('change', renderTableKit);
+        partFilterKit.addEventListener('input', renderTableKit);
+    </script>
+</body>
+</html>
