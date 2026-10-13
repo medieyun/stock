@@ -103,8 +103,9 @@
                         <i class="fa-solid fa-file-excel mr-2"></i> Download XLSX
                     </button>
                 </div>
+                
                 <!-- Filter Cable -->
-                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">
+                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Cari System / Link</label>
                         <input type="text" id="filterSystemLinkCable" placeholder="Ketik System / Link..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
@@ -132,6 +133,25 @@
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1"># Core</label>
                         <select id="filterNumCoreCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50"><option value="ALL">All # Core</option></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Resume</label>
+                        <select id="filterResumeCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                            <option value="ALL">All Resumes</option>
+                            <option value="CUKUP">CUKUP</option>
+                            <option value="KURANG">KURANG</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Prioritas</label>
+                        <select id="filterPrioritasCable" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                            <option value="ALL">All Prioritas</option>
+                            <option value="Prioritas-1">Prioritas-1</option>
+                            <option value="Prioritas-2">Prioritas-2</option>
+                            <option value="Prioritas-3">Prioritas-3</option>
+                            <option value="Prioritas-4">Prioritas-4</option>
+                            <option value="-">-</option>
+                        </select>
                     </div>
                 </div>
                 <div id="tablesContainerCable" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[650px]"></div>
@@ -181,13 +201,32 @@
                 </div>
                 <!-- Filter Kit -->
                 <div class="p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
-                    <div class="w-full sm:w-1/3">
+                    <div class="w-full sm:w-1/5">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Filter Location</label>
                         <select id="locationFilterKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                             <option value="all">Semua Location</option>
                         </select>
                     </div>
-                    <div class="w-full sm:w-2/3">
+                    <div class="w-full sm:w-1/5">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Filter Resume</label>
+                        <select id="filterResumeKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                            <option value="all">Semua Resume</option>
+                            <option value="CUKUP">CUKUP</option>
+                            <option value="KURANG">KURANG</option>
+                        </select>
+                    </div>
+                    <div class="w-full sm:w-1/5">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Filter Prioritas</label>
+                        <select id="filterPrioritasKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                            <option value="all">Semua Prioritas</option>
+                            <option value="Prioritas-1">Prioritas-1</option>
+                            <option value="Prioritas-2">Prioritas-2</option>
+                            <option value="Prioritas-3">Prioritas-3</option>
+                            <option value="Prioritas-4">Prioritas-4</option>
+                            <option value="-">-</option>
+                        </select>
+                    </div>
+                    <div class="w-full sm:w-2/5">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Cari Type, Part, atau Item Name</label>
                         <input type="text" id="partFilterKit" placeholder="Ketik Type, Part Number, atau Item Name..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                     </div>
@@ -251,6 +290,26 @@
             return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(num);
         }
 
+        function getPriorityText(resumeText, percentNum) {
+            if (resumeText === 'KURANG' && percentNum !== null) {
+                if (percentNum <= 50) return 'Prioritas-1';
+                if (percentNum <= 65) return 'Prioritas-2';
+                if (percentNum <= 80) return 'Prioritas-3';
+                if (percentNum < 100) return 'Prioritas-4';
+            }
+            return '-';
+        }
+
+        function getPriorityHtml(resumeText, percentNum) {
+            if (resumeText === 'KURANG' && percentNum !== null) {
+                if (percentNum <= 50) return '<span class="px-2 py-1 bg-red-100 text-red-700 rounded-md text-xs font-bold whitespace-nowrap border border-red-200 shadow-sm">Prioritas-1</span>';
+                if (percentNum <= 65) return '<span class="px-2 py-1 bg-orange-100 text-orange-700 rounded-md text-xs font-bold whitespace-nowrap border border-orange-200 shadow-sm">Prioritas-2</span>';
+                if (percentNum <= 80) return '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-md text-xs font-bold whitespace-nowrap border border-yellow-200 shadow-sm">Prioritas-3</span>';
+                if (percentNum < 100) return '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-bold whitespace-nowrap border border-blue-200 shadow-sm">Prioritas-4</span>';
+            }
+            return '-';
+        }
+
         // ================= CABLE INVENTORY SCRIPT =================
         const fileInputCable = document.getElementById('csvFileInputCable');
         const fileInfoCable = document.getElementById('fileInfoCable');
@@ -269,6 +328,8 @@
         const filterCoreTypeCable = document.getElementById('filterCoreTypeCable');
         const filterNumCoreCable = document.getElementById('filterNumCoreCable');
         const filterSystemLinkCable = document.getElementById('filterSystemLinkCable');
+        const filterResumeCable = document.getElementById('filterResumeCable');
+        const filterPrioritasCable = document.getElementById('filterPrioritasCable');
 
         let globalRawDataCable = [];
         let globalHeaderMapCable = {};
@@ -363,7 +424,7 @@
             });
         }
 
-        [filterLocationCable, filterManufacturerCable, filterCableTypeCable, filterArmoringCable, filterCoreTypeCable, filterNumCoreCable].forEach(el => {
+        [filterLocationCable, filterManufacturerCable, filterCableTypeCable, filterArmoringCable, filterCoreTypeCable, filterNumCoreCable, filterResumeCable, filterPrioritasCable].forEach(el => {
             el.addEventListener('change', applyFiltersAndRenderCable);
         });
         filterSystemLinkCable.addEventListener('input', applyFiltersAndRenderCable);
@@ -637,8 +698,10 @@
                 <th colspan="2" class="px-4 py-3 text-center text-xs font-extrabold text-blue-900 uppercase bg-blue-100 border-b border-slate-300">Grand Total</th>
                 <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-teal-900 uppercase bg-teal-100 border-l border-slate-300">Max. WD</th>
                 <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-indigo-900 uppercase bg-indigo-100 border-l border-slate-300">% Stock</th>
                 <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-rose-900 uppercase bg-rose-50 border-l border-slate-300">Usulan Penambahan</th>
                 <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">Resume</th>
+                <th rowspan="2" class="px-3 py-3 text-center text-xs font-bold text-slate-900 uppercase bg-slate-200 border-l border-slate-300">Prioritas</th>
             </tr>
             <tr>`;
 
@@ -677,8 +740,28 @@
                 const maxWDVal = getMaxWD(row['Armoring']);
                 const minSpareVal = getMinSpareCable(row['Armoring']);
                 totalMinSpare += minSpareVal;
+                
+                // Calculate % Stock
+                const percentStockNum = minSpareVal > 0 ? (row['Grand Total Measure'] / minSpareVal) * 100 : null;
+                const percentStockStr = percentStockNum !== null ? percentStockNum.toFixed(2) + '%' : '-';
 
                 let resumeText = row['Grand Total Measure'] < minSpareVal ? 'KURANG' : 'CUKUP';
+                
+                // Menerapkan Filter Resume
+                const selectedResumeCable = filterResumeCable.value;
+                if (selectedResumeCable !== 'ALL' && resumeText !== selectedResumeCable) {
+                    return; // Skip rendering baris ini karena filter
+                }
+
+                let prioritasText = getPriorityText(resumeText, percentStockNum);
+                let prioritasHtml = getPriorityHtml(resumeText, percentStockNum);
+
+                // Menerapkan Filter Prioritas
+                const selectedPrioritasCable = filterPrioritasCable.value;
+                if (selectedPrioritasCable !== 'ALL' && prioritasText !== selectedPrioritasCable) {
+                    return; // Skip rendering baris ini karena filter
+                }
+
                 if (resumeText === 'KURANG') countKurang++; else countCukup++;
 
                 let kekuranganVal = resumeText === 'KURANG' ? minSpareVal - row['Grand Total Measure'] : 0;
@@ -701,8 +784,10 @@
                     linkLines: linkLines,
                     maxWD: maxWDVal,
                     minSpare: minSpareVal,
+                    percentStock: percentStockStr,
                     resume: resumeText,
-                    kekurangan: kekuranganVal > 0 ? kekuranganVal : 0
+                    kekurangan: kekuranganVal > 0 ? kekuranganVal : 0,
+                    prioritas: prioritasText
                 });
 
                 linkLines.forEach((item, idx) => {
@@ -753,14 +838,19 @@
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300 align-middle">${formatNumber(row['Grand Total Measure'])}</td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200 align-middle">${formatNumber(maxWDVal)}</td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200 align-middle">${formatNumber(minSpareVal)}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-indigo-900 font-bold text-right bg-indigo-50/30 border-r border-slate-200 align-middle">${percentStockStr}</td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-r border-slate-200 align-middle">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass} align-middle">${resumeText}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-slate-50/50 border-r border-slate-200 align-middle">${prioritasHtml}</td>
                         `;
                     }
 
                     tableHTML += `</tr>`;
                 });
             });
+            
+            const totalPercentNum = totalMinSpare > 0 ? (superMeas / totalMinSpare) * 100 : null;
+            const totalPercentStr = totalPercentNum !== null ? totalPercentNum.toFixed(2) + '%' : '-';
 
             tableHTML += `
                 </tbody>
@@ -786,11 +876,11 @@
                         </td>
                         <td class="px-3 py-3 text-sm font-black text-blue-900 text-right bg-blue-200 border-r border-slate-300">${formatNumber(superMeas)}</td>
                         <td class="px-3 py-3 text-sm font-black text-teal-900 text-right bg-teal-100 border-r border-slate-300">-</td>
-                        <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-r border-slate-300">${formatNumber(totalMinSpare)}</td>
+                        <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-r border-slate-300">-</td>
+                        <td class="px-3 py-3 text-sm font-black text-indigo-900 text-right bg-indigo-200 border-r border-slate-300">-</td>
                         <td class="px-3 py-3 text-sm font-black text-rose-800 text-right bg-rose-100 border-r border-slate-300">${formatNumber(totalKekurangan)}</td>
-                        <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100">
-                            <span class="text-red-600">${countKurang} KURANG</span> / <span class="text-blue-700">${countCukup} CUKUP</span>
-                        </td>
+                        <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100 border-r border-slate-300">-</td>
+                        <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-slate-200 border-r border-slate-300">-</td>
                     </tr>
                 </tfoot>
             </table>`;
@@ -851,8 +941,8 @@
                 headersRow1.push(loc, '');
                 headersRow2.push('Qty', 'Length (Mtr)');
             });
-            headersRow1.push('Grand Total', '', 'Max. WD', 'Min. Spare', 'Kekurangan Spare', 'Resume');
-            headersRow2.push('Tot Qty', 'Tot Length', '', '', '', '');
+            headersRow1.push('Grand Total', '', 'Max. WD', 'Min. Spare', '% Stock', 'Kekurangan Spare', 'Resume', 'Prioritas');
+            headersRow2.push('Tot Qty', 'Tot Length', '', '', '', '', '', '');
 
             const aoa = [headersRow1, headersRow2];
             const merges = [
@@ -870,10 +960,12 @@
                 merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: colIdx + 1 } });
                 colIdx += 2;
             });
+            // Grand total
             merges.push({ s: { r: 0, c: colIdx }, e: { r: 0, c: colIdx + 1 } });
             colIdx += 2;
 
-            for (let i = 0; i < 4; i++) {
+            // Merging 6 columns: MaxWD, MinSpare, %Stock, KekuranganSpare, Resume, Prioritas
+            for (let i = 0; i < 6; i++) {
                 merges.push({ s: { r: 0, c: colIdx + i }, e: { r: 1, c: colIdx + i } });
             }
 
@@ -897,11 +989,11 @@
                             const lData = rowObj.locations[loc];
                             rowArr.push(lData ? lData.Quantity : 0, lData ? lData.TotalMeasure : 0);
                         });
-                        rowArr.push(rowObj['Grand Total Qty'], rowObj['Grand Total Measure'], item.maxWD, item.minSpare, item.kekurangan, item.resume);
+                        rowArr.push(rowObj['Grand Total Qty'], rowObj['Grand Total Measure'], item.maxWD, item.minSpare, item.percentStock, item.kekurangan, item.resume, item.prioritas);
                     } else {
                         rowArr.push('', lItem.link, '', '', '', '', '');
                         locs.forEach(() => rowArr.push('', ''));
-                        rowArr.push('', '', '', '', '', '');
+                        rowArr.push('', '', '', '', '', '', '', '');
                     }
                     aoa.push(rowArr);
                     currentRow++;
@@ -924,7 +1016,7 @@
                     merges.push({ s: { r: startR, c: mCol }, e: { r: startR + span - 1, c: mCol } });
                     merges.push({ s: { r: startR, c: mCol + 1 }, e: { r: startR + span - 1, c: mCol + 1 } });
                     mCol += 2;
-                    for (let k = 0; k < 4; k++) {
+                    for (let k = 0; k < 6; k++) {
                         merges.push({ s: { r: startR, c: mCol + k }, e: { r: startR + span - 1, c: mCol + k } });
                     }
                 }
@@ -943,11 +1035,14 @@
                 });
             });
 
+            const totalPercentNum = totalMinSpare > 0 ? (grandTotMeas / totalMinSpare) * 100 : null;
+            const totalPercentStr = totalPercentNum !== null ? totalPercentNum.toFixed(2) + '%' : '-';
+
             const footerRow = ['TOTAL KESELURUHAN:', '', '', '', '', '', ''];
             locs.forEach(loc => {
                 footerRow.push(colTotals[loc].qty, colTotals[loc].measure);
             });
-            footerRow.push(grandTotQty, grandTotMeas, '-', totalMinSpare, totalKekurangan, `${countKurang} KURANG / ${countCukup} CUKUP`);
+            footerRow.push(grandTotQty, grandTotMeas, '-', '-', '-', totalKekurangan, '-', '-');
             aoa.push(footerRow);
             merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 6 } });
 
@@ -970,6 +1065,8 @@
         const tablesContainerKit = document.getElementById('tablesContainerKit');
         const locationFilterKit = document.getElementById('locationFilterKit');
         const partFilterKit = document.getElementById('partFilterKit');
+        const filterResumeKit = document.getElementById('filterResumeKit');
+        const filterPrioritasKit = document.getElementById('filterPrioritasKit');
         const downloadBtnKit = document.getElementById('downloadBtnKit');
 
         let globalDataKit = { locations: [], parts: [], dataMap: new Map() };
@@ -1127,8 +1224,10 @@
 
             tableHTML += `
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-amber-900 uppercase bg-amber-100 border-l border-slate-300">Min. Spare</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-indigo-900 uppercase bg-indigo-100 border-l border-slate-300">% Stock</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-rose-900 uppercase bg-rose-50 border-l border-slate-300">Usulan Penambahan</th>
                 <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-purple-900 uppercase bg-purple-100 border-l border-slate-300">RESUME</th>
+                <th rowspan="2" class="px-4 py-3 text-center text-xs font-bold text-slate-900 uppercase bg-slate-200 border-l border-slate-300">Prioritas</th>
             `;
 
             tableHTML += `</tr><tr>`;
@@ -1156,6 +1255,30 @@
 
                 if (searchPart && !partNo.toLowerCase().includes(searchPart) && !itemName.toLowerCase().includes(searchPart) && !typeVal.toLowerCase().includes(searchPart)) return;
                 if (filterLoc !== 'all' && (!partObj.locations[filterLoc] || (partObj.locations[filterLoc].qty === 0 && partObj.locations[filterLoc].weight === 0))) return;
+
+                // Hitung kuantitas sementara untuk mengecek kriteria filter Resume
+                let tempQty = 0;
+                displayLocs.forEach(l => {
+                    const lData = partObj.locations[l];
+                    if (lData) tempQty += lData.qty;
+                });
+                const minSpareVal = getMinSpareKit(typeVal);
+                let resumeText = tempQty < minSpareVal ? 'KURANG' : 'CUKUP';
+                
+                // Menerapkan Filter Resume
+                const selectedResumeKit = filterResumeKit.value;
+                if (selectedResumeKit !== 'all' && resumeText !== selectedResumeKit) {
+                    return; // Skip baris ini karena filter
+                }
+
+                const tempPercentKitNum = minSpareVal > 0 ? (tempQty / minSpareVal) * 100 : null;
+                const tempPrioritasText = getPriorityText(resumeText, tempPercentKitNum);
+
+                // Menerapkan Filter Prioritas
+                const selectedPrioritasKit = filterPrioritasKit.value;
+                if (selectedPrioritasKit !== 'all' && tempPrioritasText !== selectedPrioritasKit) {
+                    return; // Skip baris ini karena filter
+                }
 
                 const exportRow = {
                     'Type': typeVal,
@@ -1202,36 +1325,42 @@
                                   <td class="px-3 py-2 text-sm font-bold text-slate-900 text-right bg-slate-50">${rWeight ? formatNumber(rWeight) : '-'}</td>`;
                 }
 
-                const minSpareVal = getMinSpareKit(typeVal);
                 totalMinSpareKit += minSpareVal;
                 exportRow['Min. Spare'] = minSpareVal;
 
-                let resumeText = '';
-                let resumeClass = '';
-                if (rQty < minSpareVal) {
-                    resumeText = 'KURANG';
-                    resumeClass = 'text-red-600 font-bold';
-                } else {
-                    resumeText = 'CUKUP';
-                    resumeClass = 'text-blue-700 font-bold';
-                }
-                exportRow['RESUME'] = resumeText;
+                // Calculate % Stock
+                const percentKitNum = minSpareVal > 0 ? (rQty / minSpareVal) * 100 : null;
+                const percentKitStr = percentKitNum !== null ? percentKitNum.toFixed(2) + '%' : '-';
+                exportRow['% Stock'] = percentKitStr;
+
+                let resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
 
                 let kekuranganVal = 0;
                 if (resumeText === 'KURANG') {
                     kekuranganVal = minSpareVal - rQty;
                     totalKekuranganKit += kekuranganVal;
                 }
+
+                let prioritasText = getPriorityText(resumeText, percentKitNum);
+                let prioritasHtml = getPriorityHtml(resumeText, percentKitNum);
+
                 exportRow['Kekurangan Spare'] = kekuranganVal > 0 ? kekuranganVal : 0;
+                exportRow['RESUME'] = resumeText;
+                exportRow['Prioritas'] = prioritasText;
 
                 processedDataForExportKit.push(exportRow);
 
                 tableHTML += `
                     <td class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-l border-slate-200">${formatNumber(minSpareVal)}</td>
+                    <td class="px-3 py-2 text-sm text-indigo-900 font-bold text-right bg-indigo-50/30 border-l border-slate-200">${percentKitStr}</td>
                     <td class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-l border-slate-200">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
                     <td class="px-3 py-2 text-sm text-center bg-purple-50/30 border-l border-slate-200 ${resumeClass}">${resumeText}</td>
+                    <td class="px-3 py-2 text-sm text-center bg-slate-50/50 border-l border-slate-200">${prioritasHtml}</td>
                 </tr>`;
             });
+            
+            const totalPercentKitNum = totalMinSpareKit > 0 ? (superTot.qty / totalMinSpareKit) * 100 : null;
+            const totalPercentKitStr = totalPercentKitNum !== null ? totalPercentKitNum.toFixed(2) + '%' : '-';
 
             tableHTML += `</tbody><tfoot class="bg-slate-200 border-t-2 border-slate-400"><tr>
                 <td colspan="3" class="px-4 py-3 text-sm font-bold text-slate-800 text-right border-r border-slate-300">TOTAL KESELURUHAN:</td>`;
@@ -1244,9 +1373,11 @@
                               <td class="px-3 py-3 text-sm font-black text-slate-900 text-right bg-slate-300">${formatNumber(superTot.weight)}</td>`;
             }
             tableHTML += `
-                <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-l border-slate-300">${formatNumber(totalMinSpareKit)}</td>
+                <td class="px-3 py-3 text-sm font-black text-amber-900 text-right bg-amber-100 border-l border-slate-300">-</td>
+                <td class="px-3 py-3 text-sm font-black text-indigo-900 text-right bg-indigo-200 border-l border-slate-300">-</td>
                 <td class="px-3 py-3 text-sm font-black text-rose-800 text-right bg-rose-100 border-l border-slate-300">${formatNumber(totalKekuranganKit)}</td>
                 <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-purple-100 border-l border-slate-300">-</td>
+                <td class="px-3 py-3 text-sm font-black text-slate-800 text-center bg-slate-200 border-l border-slate-300">-</td>
             </tr></tfoot></table>`;
 
             tablesContainerKit.innerHTML = tableHTML;
@@ -1268,6 +1399,8 @@
 
         locationFilterKit.addEventListener('change', renderTableKit);
         partFilterKit.addEventListener('input', renderTableKit);
+        filterResumeKit.addEventListener('change', renderTableKit);
+        filterPrioritasKit.addEventListener('change', renderTableKit);
     </script>
 </body>
 </html>
