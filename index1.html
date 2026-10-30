@@ -746,15 +746,26 @@
                 }
 
                 const rowSpanCount = linkLines.length;
+                let isUnknownSystem = mappings.length > 0 && mappings[0].sys === 'Un-Known';
+
                 const maxWDVal = getMaxWD(row['Armoring']);
                 const minSpareVal = getMinSpareCable(row['Armoring']);
-                totalMinSpare += minSpareVal;
                 
                 // Calculate % Stock
                 const percentStockNum = minSpareVal > 0 ? (row['Grand Total Measure'] / minSpareVal) * 100 : null;
                 const percentStockStr = percentStockNum !== null ? percentStockNum.toFixed(2) + '%' : '-';
 
                 let resumeText = row['Grand Total Measure'] < minSpareVal ? 'KURANG' : 'CUKUP';
+                let prioritasText = getPriorityText(resumeText, percentStockNum);
+                let prioritasHtml = getPriorityHtml(resumeText, percentStockNum);
+                let kekuranganVal = resumeText === 'KURANG' ? minSpareVal - row['Grand Total Measure'] : 0;
+
+                // Kosongkan value jika system adalah Un-Known
+                if (isUnknownSystem) {
+                    resumeText = '-'; // Disable untuk filter
+                    prioritasText = '-';
+                    prioritasHtml = '-';
+                }
                 
                 // Menerapkan Filter Resume
                 const selectedResumeCable = filterResumeCable.value;
@@ -762,19 +773,17 @@
                     return; // Skip rendering baris ini karena filter
                 }
 
-                let prioritasText = getPriorityText(resumeText, percentStockNum);
-                let prioritasHtml = getPriorityHtml(resumeText, percentStockNum);
-
                 // Menerapkan Filter Prioritas
                 const selectedPrioritasCable = filterPrioritasCable.value;
                 if (selectedPrioritasCable !== 'ALL' && prioritasText !== selectedPrioritasCable) {
                     return; // Skip rendering baris ini karena filter
                 }
 
-                if (resumeText === 'KURANG') countKurang++; else countCukup++;
-
-                let kekuranganVal = resumeText === 'KURANG' ? minSpareVal - row['Grand Total Measure'] : 0;
-                if (kekuranganVal > 0) totalKekurangan += kekuranganVal;
+                if (!isUnknownSystem) {
+                    totalMinSpare += minSpareVal;
+                    if (resumeText === 'KURANG') countKurang++; else countCukup++;
+                    if (kekuranganVal > 0) totalKekurangan += kekuranganVal;
+                }
 
                 superQty += row['Grand Total Qty'];
                 superMeas += row['Grand Total Measure'];
@@ -791,6 +800,7 @@
                 currentPivotRowsCable.push({
                     rowObject: row,
                     linkLines: linkLines,
+                    isUnknownSystem: isUnknownSystem,
                     maxWD: maxWDVal,
                     minSpare: minSpareVal,
                     percentStock: percentStockStr,
@@ -836,7 +846,7 @@
                             }
                         });
 
-                        const resumeClass = resumeText === 'KURANG' ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
+                        const resumeClass = (!isUnknownSystem && resumeText === 'KURANG') ? 'text-red-600 font-bold' : 'text-blue-700 font-bold';
                         const encodedGrandRows = encodeURIComponent(JSON.stringify(row.rawRows));
                         tableHTML += `
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-200 align-middle">
@@ -845,12 +855,12 @@
                                 </a>
                             </td>
                             <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-blue-800 font-bold text-right bg-blue-50/50 border-r border-slate-300 align-middle">${formatNumber(row['Grand Total Measure'])}</td>
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200 align-middle">${formatNumber(maxWDVal)}</td>
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200 align-middle">${formatNumber(minSpareVal)}</td>
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-indigo-900 font-bold text-right bg-indigo-50/30 border-r border-slate-200 align-middle">${percentStockStr}</td>
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-r border-slate-200 align-middle">${kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-'}</td>
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass} align-middle">${resumeText}</td>
-                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-slate-50/50 border-r border-slate-200 align-middle">${prioritasHtml}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-teal-900 font-bold text-right bg-teal-50/30 border-r border-slate-200 align-middle">${isUnknownSystem ? '' : formatNumber(maxWDVal)}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-amber-900 font-bold text-right bg-amber-50/30 border-r border-slate-200 align-middle">${isUnknownSystem ? '' : formatNumber(minSpareVal)}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-indigo-900 font-bold text-right bg-indigo-50/30 border-r border-slate-200 align-middle">${isUnknownSystem ? '' : percentStockStr}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-rose-700 font-bold text-right bg-rose-50/30 border-r border-slate-200 align-middle">${isUnknownSystem ? '' : (kekuranganVal > 0 ? formatNumber(kekuranganVal) : '-')}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-purple-50/30 ${resumeClass} align-middle">${isUnknownSystem ? '' : resumeText}</td>
+                            <td rowspan="${rowSpanCount}" class="px-3 py-2 text-sm text-center bg-slate-50/50 border-r border-slate-200 align-middle">${isUnknownSystem ? '' : prioritasHtml}</td>
                         `;
                     }
 
@@ -998,7 +1008,16 @@
                             const lData = rowObj.locations[loc];
                             rowArr.push(lData ? lData.Quantity : 0, lData ? lData.TotalMeasure : 0);
                         });
-                        rowArr.push(rowObj['Grand Total Qty'], rowObj['Grand Total Measure'], item.maxWD, item.minSpare, item.percentStock, item.kekurangan, item.resume, item.prioritas);
+                        rowArr.push(
+                            rowObj['Grand Total Qty'], 
+                            rowObj['Grand Total Measure'], 
+                            item.isUnknownSystem ? '' : item.maxWD, 
+                            item.isUnknownSystem ? '' : item.minSpare, 
+                            item.isUnknownSystem ? '' : item.percentStock, 
+                            item.isUnknownSystem ? '' : (item.kekurangan > 0 ? item.kekurangan : '-'), 
+                            item.isUnknownSystem ? '' : item.resume, 
+                            item.isUnknownSystem ? '' : item.prioritas
+                        );
                     } else {
                         rowArr.push('', lItem.link, '', '', '', '', '');
                         locs.forEach(() => rowArr.push('', ''));
@@ -1032,9 +1051,11 @@
 
                 grandTotQty += rowObj['Grand Total Qty'];
                 grandTotMeas += rowObj['Grand Total Measure'];
-                totalMinSpare += item.minSpare;
-                if (item.kekurangan > 0) totalKekurangan += item.kekurangan;
-                if (item.resume === 'KURANG') countKurang++; else countCukup++;
+                if (!item.isUnknownSystem) {
+                    totalMinSpare += item.minSpare;
+                    if (item.kekurangan > 0) totalKekurangan += item.kekurangan;
+                    if (item.resume === 'KURANG') countKurang++; else countCukup++;
+                }
 
                 locs.forEach(loc => {
                     if (rowObj.locations[loc]) {
