@@ -104,7 +104,7 @@
                 </div>
                 
                 <!-- Filter Cable -->
-                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
+                <div class="p-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-3 items-end">
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Cari System / Link</label>
                         <input type="text" id="filterSystemLinkCable" placeholder="Ketik System / Link..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
@@ -151,6 +151,11 @@
                             <option value="Prioritas-4">Prioritas-4</option>
                             <option value="-">-</option>
                         </select>
+                    </div>
+                    <div>
+                        <button onclick="resetFiltersCable()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-md text-sm font-semibold transition-colors border border-slate-300 shadow-sm flex items-center justify-center">
+                            <i class="fa-solid fa-rotate-right mr-1.5"></i> Reset
+                        </button>
                     </div>
                 </div>
                 <div id="tablesContainerCable" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[650px]"></div>
@@ -199,14 +204,14 @@
                     </button>
                 </div>
                 <!-- Filter Kit -->
-                <div class="p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-center">
-                    <div class="w-full sm:w-1/5">
+                <div class="p-4 bg-white border-b border-slate-200 flex flex-col sm:flex-row gap-4 items-end">
+                    <div class="w-full sm:w-[15%]">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Filter Location</label>
                         <select id="locationFilterKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                             <option value="all">Semua Location</option>
                         </select>
                     </div>
-                    <div class="w-full sm:w-1/5">
+                    <div class="w-full sm:w-[15%]">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Filter Resume</label>
                         <select id="filterResumeKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                             <option value="all">Semua Resume</option>
@@ -214,7 +219,7 @@
                             <option value="KURANG">KURANG</option>
                         </select>
                     </div>
-                    <div class="w-full sm:w-1/5">
+                    <div class="w-full sm:w-[15%]">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Filter Prioritas</label>
                         <select id="filterPrioritasKit" class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
                             <option value="all">Semua Prioritas</option>
@@ -225,9 +230,14 @@
                             <option value="-">-</option>
                         </select>
                     </div>
-                    <div class="w-full sm:w-2/5">
+                    <div class="w-full sm:w-[45%]">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Cari Type, Part, atau Item Name</label>
                         <input type="text" id="partFilterKit" placeholder="Ketik Type, Part Number, atau Item Name..." class="w-full text-sm border-slate-300 rounded-md shadow-sm border p-2 bg-slate-50">
+                    </div>
+                    <div class="w-full sm:w-[10%]">
+                        <button onclick="resetFiltersKit()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-md text-sm font-semibold transition-colors border border-slate-300 shadow-sm flex items-center justify-center">
+                            <i class="fa-solid fa-rotate-right mr-1.5"></i> Reset
+                        </button>
                     </div>
                 </div>
                 <div id="tablesContainerKit" class="p-0 bg-slate-50/50 flex-1 overflow-auto max-h-[650px]"></div>
@@ -421,6 +431,19 @@
                 opt.textContent = val;
                 el.appendChild(opt);
             });
+        }
+
+        function resetFiltersCable() {
+            filterSystemLinkCable.value = '';
+            filterLocationCable.value = 'ALL';
+            filterManufacturerCable.value = 'ALL';
+            filterCableTypeCable.value = 'ALL';
+            filterArmoringCable.value = 'ALL';
+            filterCoreTypeCable.value = 'ALL';
+            filterNumCoreCable.value = 'ALL';
+            filterResumeCable.value = 'ALL';
+            filterPrioritasCable.value = 'ALL';
+            applyFiltersAndRenderCable();
         }
 
         [filterLocationCable, filterManufacturerCable, filterCableTypeCable, filterArmoringCable, filterCoreTypeCable, filterNumCoreCable, filterResumeCable, filterPrioritasCable].forEach(el => {
@@ -1435,6 +1458,14 @@
             errorMessageKit.textContent = msg;
             errorBoxKit.style.display = 'block';
             loadingStateKit.classList.add('hidden');
+        }
+
+        function resetFiltersKit() {
+            locationFilterKit.value = 'all';
+            filterResumeKit.value = 'all';
+            filterPrioritasKit.value = 'all';
+            partFilterKit.value = '';
+            renderTableKit();
         }
 
         locationFilterKit.addEventListener('change', renderTableKit);
